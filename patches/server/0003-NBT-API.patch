@@ -1,0 +1,205 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Sun, 31 May 2020 19:27:00 -0400
+Subject: [PATCH] NBT API
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+index d5e8a7ee6de22d09e563ad1c124a18810a38a0c5..e92fb8d5468d8c887563e074e7b3d06d3b65255f 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+@@ -8,6 +8,7 @@ import net.minecraft.server.Item;
+ import net.minecraft.server.NBTTagCompound;
+ import net.minecraft.server.NBTTagList;
+ import org.apache.commons.lang.Validate;
++import org.bukkit.Bukkit;
+ import org.bukkit.Material;
+ import org.bukkit.configuration.serialization.DelegateDeserialization;
+ import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
+@@ -19,6 +20,8 @@ import org.bukkit.inventory.ItemStack;
+ import org.bukkit.inventory.meta.ItemMeta;
+ import org.bukkit.material.MaterialData;
+ 
++import javax.annotation.Nullable;
++
+ @DelegateDeserialization(ItemStack.class)
+ public final class CraftItemStack extends ItemStack {
+ 
+@@ -559,4 +562,76 @@ public final class CraftItemStack extends ItemStack {
+     static boolean hasItemMeta(net.minecraft.server.ItemStack item) {
+         return !(item == null || item.getTag() == null || item.getTag().isEmpty());
+     }
++
++    // Nesaak start
++
++    public NBTTagCompound getTag() {
++        return handle.getOrCreateTag();
++    }
++
++    @Override
++    public ItemMeta getMetaMirror() {
++        return null;
++    }
++
++    @Override
++    public boolean hasNBT(String key) {
++        return getTag().hasKey(key);
++    }
++
++    @Override
++    public void removeNBT(String key) {
++        getTag().remove(key);
++    }
++
++    @Override
++    public void setNBT(String key, String value) {
++        getTag().setString(key, value);
++    }
++
++    @Override
++    public void setNBT(String key, int value) {
++        getTag().setInt(key, value);
++    }
++
++    @Override
++    public void setNBT(String key, long value) {
++        getTag().setLong(key, value);
++    }
++
++    @Override
++    public void setNBT(String key, double value) {
++        getTag().setDouble(key, value);
++    }
++
++    @Override
++    public void setNBT(String key, byte value) {
++        getTag().setByte(key, value);
++    }
++
++    @Override
++    public String getNBTString(String key) {
++        return getTag().getString(key);
++    }
++
++    public int getNBTInt(String key) {
++        return getTag().getInt(key);
++    }
++
++    @Override
++    public long getNBTLong(String key) {
++        return getTag().getLong(key);
++    }
++
++    @Override
++    public double getNBTDouble(String key) {
++        return getTag().getDouble(key);
++    }
++
++    @Override
++    public byte getNBTByte(String key) {
++        return getTag().getByte(key);
++    }
++
++    // Nesaak end
+ }
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
+index c28ea1cef0620ba2956139c074fead3c2da2e5cb..c9b72f902378df9ede02e6c0731d6b53ea0fe24a 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
+@@ -39,17 +39,8 @@ import java.util.logging.Level;
+ import java.util.logging.Logger;
+ import javax.annotation.Nonnull;
+ import javax.annotation.Nullable;
+-import net.minecraft.server.ChatComponentText;
+-import net.minecraft.server.EnumChatFormat;
+-import net.minecraft.server.EnumItemSlot;
+-import net.minecraft.server.GenericAttributes;
+-import net.minecraft.server.IChatBaseComponent;
+-import net.minecraft.server.ItemBlock;
+-import net.minecraft.server.NBTBase;
+-import net.minecraft.server.NBTCompressedStreamTools;
+-import net.minecraft.server.NBTTagCompound;
+-import net.minecraft.server.NBTTagList;
+-import net.minecraft.server.NBTTagString;
++
++import net.minecraft.server.*;
+ import org.apache.commons.codec.binary.Base64;
+ import org.apache.commons.lang.Validate;
+ import org.apache.commons.lang3.EnumUtils;
+@@ -117,7 +108,6 @@ import java.util.Collections;
+  */
+ @DelegateDeserialization(CraftMetaItem.SerializableMeta.class)
+ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
+-
+     static class ItemMetaKey {
+ 
+         @Retention(RetentionPolicy.SOURCE)
+@@ -1748,4 +1738,68 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
+         return valid;
+     }
+     // Paper end
++
++    // Nesaak start
++
++    @Override
++    public boolean hasNBT(String key) {
++        return unhandledTags.containsKey(key);
++    }
++
++    @Override
++    public void removeNBT(String key) {
++        unhandledTags.remove(key);
++    }
++
++    @Override
++    public void setNBT(String key, String value) {
++        unhandledTags.put(key, NBTTagString.a(value));
++    }
++
++    @Override
++    public void setNBT(String key, int value) {
++        unhandledTags.put(key, NBTTagInt.a(value));
++    }
++
++    @Override
++    public void setNBT(String key, long value) {
++        unhandledTags.put(key, NBTTagLong.a(value));
++    }
++
++    @Override
++    public void setNBT(String key, double value) {
++        unhandledTags.put(key, NBTTagDouble.a(value));
++    }
++
++    @Override
++    public void setNBT(String key, byte value) {
++        unhandledTags.put(key, NBTTagByte.a(value));
++    }
++
++    @Override
++    public String getNBTString(String key) {
++        return unhandledTags.get(key).asString();
++    }
++
++    @Override
++    public int getNBTInt(String key) {
++        return ((NBTTagInt) unhandledTags.get(key)).asInt();
++    }
++
++    @Override
++    public long getNBTLong(String key) {
++        return ((NBTNumber) unhandledTags.get(key)).asLong();
++    }
++
++    @Override
++    public double getNBTDouble(String key) {
++        return ((NBTNumber) unhandledTags.get(key)).asDouble();
++    }
++
++    @Override
++    public byte getNBTByte(String key) {
++        return ((NBTNumber) unhandledTags.get(key)).asByte();
++    }
++
++    // Nesaak end
+ }

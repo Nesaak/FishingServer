@@ -1,0 +1,58 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Sun, 31 May 2020 15:58:57 -0400
+Subject: [PATCH] Brand support
+
+
+diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
+index 5b24de6d6071bddee642ddbc00959cf93792051e..038eca6ad0de61077733cdd78449cc7b4bcfa908 100644
+--- a/src/main/java/net/minecraft/server/MinecraftServer.java
++++ b/src/main/java/net/minecraft/server/MinecraftServer.java
+@@ -1559,7 +1559,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+     }
+ 
+     public String getServerModName() {
+-        return "Paper"; //Paper - Paper > // Spigot - Spigot > // CraftBukkit - cb > vanilla!
++        return CraftServer.SERVER_NAME; //Paper - Paper > // Spigot - Spigot > // CraftBukkit - cb > vanilla!
+     }
+ 
+     public CrashReport b(CrashReport crashreport) {
+diff --git a/src/main/java/org/bukkit/craftbukkit/CraftServer.java b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+index 894917c8891a951edb251f019529d0f7bec7037d..592df69fa438e8daca527dcfae3917e7758ceaec 100644
+--- a/src/main/java/org/bukkit/craftbukkit/CraftServer.java
++++ b/src/main/java/org/bukkit/craftbukkit/CraftServer.java
+@@ -60,7 +60,6 @@ import net.minecraft.server.EntityPlayer;
+ import net.minecraft.server.EnumDifficulty;
+ import net.minecraft.server.EnumGamemode;
+ import net.minecraft.server.IRecipe;
+-import net.minecraft.server.IRegistry;
+ import net.minecraft.server.Item;
+ import net.minecraft.server.ItemWorldMap;
+ import net.minecraft.server.Items;
+@@ -205,7 +204,7 @@ import javax.annotation.Nullable; // Paper
+ import javax.annotation.Nonnull; // Paper
+ 
+ public final class CraftServer implements Server {
+-    private final String serverName = "Paper"; // Paper
++    public static final String SERVER_NAME = "FishingRPG"; // Paper
+     private final String serverVersion;
+     private final String bukkitVersion = Versioning.getBukkitVersion();
+     private final Logger logger = Logger.getLogger("Minecraft");
+@@ -477,7 +476,7 @@ public final class CraftServer implements Server {
+ 
+     @Override
+     public String getName() {
+-        return serverName;
++        return SERVER_NAME;
+     }
+ 
+     @Override
+@@ -990,7 +989,7 @@ public final class CraftServer implements Server {
+ 
+     @Override
+     public String toString() {
+-        return "CraftServer{" + "serverName=" + serverName + ",serverVersion=" + serverVersion + ",minecraftVersion=" + console.getVersion() + '}';
++        return "CraftServer{" + "serverName=" + SERVER_NAME + ",serverVersion=" + serverVersion + ",minecraftVersion=" + console.getVersion() + '}';
+     }
+ 
+     public World createWorld(String name, World.Environment environment) {
