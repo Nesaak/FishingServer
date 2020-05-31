@@ -67,7 +67,7 @@ function importLibrary {
 (
     cd Paper/Paper-Server/
     lastlog=$(git log -1 --oneline)
-    if [[ "$lastlog" = *"Tuinity-Extra mc-dev Imports"* ]]; then
+    if [[ "$lastlog" = *"Fishing-Extra mc-dev Imports"* ]]; then
         git reset --hard HEAD^
     fi
 )
@@ -113,6 +113,6 @@ done
     cd Paper/Paper-Server/
     rm -rf nms-patches
     git add src -A
-    echo -e "Tuinity-Extra mc-dev Imports\n\n$MODLOG" | git commit src -F -
+    echo -e "Fishing-Extra mc-dev Imports\n\n$MODLOG" | git commit src -F -
     exit 0
 )
