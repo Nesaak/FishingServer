@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Sun, 31 May 2020 20:00:33 -0400
+Subject: [PATCH] Remove Functionality of Fishing Rods
+
+
+diff --git a/src/main/java/net/minecraft/server/ItemFishingRod.java b/src/main/java/net/minecraft/server/ItemFishingRod.java
+index 2ecf917ce70ff4d3195b985087e57f279eab6d59..af1594e195459af78bc87849668e8a3ac69ea9ab 100644
+--- a/src/main/java/net/minecraft/server/ItemFishingRod.java
++++ b/src/main/java/net/minecraft/server/ItemFishingRod.java
+@@ -29,6 +29,8 @@ public class ItemFishingRod extends Item {
+     @Override
+     public InteractionResultWrapper<ItemStack> a(World world, EntityHuman entityhuman, EnumHand enumhand) {
+         ItemStack itemstack = entityhuman.b(enumhand);
++        return InteractionResultWrapper.pass(itemstack);
++        /*
+         int i;
+ 
+         if (entityhuman.hookedFish != null) {
+@@ -64,6 +66,7 @@ public class ItemFishingRod extends Item {
+         }
+ 
+         return InteractionResultWrapper.success(itemstack);
++         */
+     }
+ 
+     @Override
