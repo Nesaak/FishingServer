@@ -1,0 +1,81 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Mon, 1 Jun 2020 11:48:26 -0400
+Subject: [PATCH] Implement Changes to Support EquipmentChangeEvent
+
+
+diff --git a/src/main/java/net/minecraft/server/EntityLiving.java b/src/main/java/net/minecraft/server/EntityLiving.java
+index 3fc2360a103a5399f2878eccb0c13eb6e41e824d..eb4e34a18e462f98c30a61439ec30c5df9e054ca 100644
+--- a/src/main/java/net/minecraft/server/EntityLiving.java
++++ b/src/main/java/net/minecraft/server/EntityLiving.java
+@@ -1,44 +1,29 @@
+ package net.minecraft.server;
+ 
+-import com.destroystokyo.paper.event.player.PlayerArmorChangeEvent;
++import com.destroystokyo.paper.event.player.PlayerEquipmentChangeEvent;
++import com.google.common.base.Function;
+ import com.google.common.base.Objects;
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.ImmutableSet;
++import com.google.common.collect.Lists;
+ import com.google.common.collect.Maps;
+ import com.mojang.datafixers.Dynamic;
+ import com.mojang.datafixers.types.DynamicOps;
+-import java.util.Collection;
+-import java.util.ConcurrentModificationException;
+-import java.util.Iterator;
+-import java.util.List;
+-import java.util.Map;
+-import java.util.Optional;
+-import java.util.Random;
+-import java.util.Set;
+-import java.util.UUID;
+-import javax.annotation.Nullable;
+ import org.apache.commons.lang3.tuple.Pair;
+-
+-// CraftBukkit start
+-import java.util.ArrayList;
+-import com.google.common.base.Function;
+-import com.google.common.collect.Lists;
+ import org.bukkit.Location;
+ import org.bukkit.craftbukkit.attribute.CraftAttributeMap;
+ import org.bukkit.craftbukkit.event.CraftEventFactory;
+ import org.bukkit.craftbukkit.inventory.CraftItemStack;
+ import org.bukkit.entity.LivingEntity;
+ import org.bukkit.entity.Player;
+-import org.bukkit.event.entity.EntityDamageEvent;
++import org.bukkit.event.entity.*;
+ import org.bukkit.event.entity.EntityDamageEvent.DamageModifier;
+-import org.bukkit.event.entity.EntityPotionEffectEvent;
+-import org.bukkit.event.entity.EntityRegainHealthEvent;
+-import org.bukkit.event.entity.EntityResurrectEvent;
+-import org.bukkit.event.entity.EntityTeleportEvent;
+ import org.bukkit.event.player.PlayerItemConsumeEvent;
+-// CraftBukkit end
+ 
+-import co.aikar.timings.MinecraftTimings; // Paper
++import javax.annotation.Nullable;
++import java.util.*;
++// CraftBukkit start
++// CraftBukkit end
+ 
+ public abstract class EntityLiving extends Entity {
+ 
+@@ -2497,13 +2482,13 @@ public abstract class EntityLiving extends Entity {
+             ItemStack itemstack1 = this.getEquipment(enumitemslot);
+ 
+             if (!ItemStack.matches(itemstack1, itemstack)) {
+-                // Paper start - PlayerArmorChangeEvent
+-                if (this instanceof EntityPlayer && enumitemslot.getType() == EnumItemSlot.Function.ARMOR) {
++                // Nesaak start - EquipmentChangeEvent
++                if (this instanceof EntityPlayer) {
+                     final org.bukkit.inventory.ItemStack oldItem = CraftItemStack.asBukkitCopy(itemstack);
+                     final org.bukkit.inventory.ItemStack newItem = CraftItemStack.asBukkitCopy(itemstack1);
+-                    new PlayerArmorChangeEvent((Player) this.getBukkitEntity(), PlayerArmorChangeEvent.SlotType.valueOf(enumitemslot.name()), oldItem, newItem).callEvent();
++                    new PlayerEquipmentChangeEvent((Player) this.getBukkitEntity(), PlayerEquipmentChangeEvent.SlotType.valueOf(enumitemslot.name()), oldItem, newItem).callEvent();
+                 }
+-                // Paper end
++                // Nesaak end
+                 ((WorldServer) this.world).getChunkProvider().broadcast(this, new PacketPlayOutEntityEquipment(this.getId(), enumitemslot, itemstack1));
+                 if (!itemstack.isEmpty()) {
+                     this.getAttributeMap().a(itemstack.a(enumitemslot));
