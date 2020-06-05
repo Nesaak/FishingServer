@@ -5,10 +5,10 @@ Subject: [PATCH] Brand support
 
 
 diff --git a/src/main/java/net/minecraft/server/MinecraftServer.java b/src/main/java/net/minecraft/server/MinecraftServer.java
-index 5b24de6d6071bddee642ddbc00959cf93792051e..038eca6ad0de61077733cdd78449cc7b4bcfa908 100644
+index 395e5034ea72599628c58495e3937a5d63e6af66..8ee32bb7391c927840d7ff1867500fccc5c0552e 100644
 --- a/src/main/java/net/minecraft/server/MinecraftServer.java
 +++ b/src/main/java/net/minecraft/server/MinecraftServer.java
-@@ -1559,7 +1559,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
+@@ -1561,7 +1561,7 @@ public abstract class MinecraftServer extends IAsyncTaskHandlerReentrant<TickTas
      }
  
      public String getServerModName() {

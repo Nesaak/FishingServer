@@ -1,0 +1,24 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Fri, 5 Jun 2020 16:22:36 -0400
+Subject: [PATCH] Fix CraftMetaItem imports
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
+index 4ddc0d6e125164684ee5d4e0e5f5a786cb670262..1b847bbeefab2a6fa30585ea0498a71be2762447 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
+@@ -46,8 +46,13 @@ import net.minecraft.server.IChatBaseComponent;
+ import net.minecraft.server.ItemBlock;
+ import net.minecraft.server.NBTBase;
+ import net.minecraft.server.NBTCompressedStreamTools;
++import net.minecraft.server.NBTNumber;
++import net.minecraft.server.NBTTagByte;
+ import net.minecraft.server.NBTTagCompound;
++import net.minecraft.server.NBTTagDouble;
++import net.minecraft.server.NBTTagInt;
+ import net.minecraft.server.NBTTagList;
++import net.minecraft.server.NBTTagLong;
+ import net.minecraft.server.NBTTagString;
+ import org.apache.commons.codec.binary.Base64;
+ import org.apache.commons.lang.Validate;

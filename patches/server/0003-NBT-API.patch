@@ -103,30 +103,10 @@ index d5e8a7ee6de22d09e563ad1c124a18810a38a0c5..e92fb8d5468d8c887563e074e7b3d06d
 +    // Nesaak end
  }
 diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
-index c28ea1cef0620ba2956139c074fead3c2da2e5cb..c9b72f902378df9ede02e6c0731d6b53ea0fe24a 100644
+index 706f1bd66c79dddc26794cad818679473e20382f..4ddc0d6e125164684ee5d4e0e5f5a786cb670262 100644
 --- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
 +++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftMetaItem.java
-@@ -39,17 +39,8 @@ import java.util.logging.Level;
- import java.util.logging.Logger;
- import javax.annotation.Nonnull;
- import javax.annotation.Nullable;
--import net.minecraft.server.ChatComponentText;
--import net.minecraft.server.EnumChatFormat;
--import net.minecraft.server.EnumItemSlot;
--import net.minecraft.server.GenericAttributes;
--import net.minecraft.server.IChatBaseComponent;
--import net.minecraft.server.ItemBlock;
--import net.minecraft.server.NBTBase;
--import net.minecraft.server.NBTCompressedStreamTools;
--import net.minecraft.server.NBTTagCompound;
--import net.minecraft.server.NBTTagList;
--import net.minecraft.server.NBTTagString;
-+
-+import net.minecraft.server.*;
- import org.apache.commons.codec.binary.Base64;
- import org.apache.commons.lang.Validate;
- import org.apache.commons.lang3.EnumUtils;
-@@ -117,7 +108,6 @@ import java.util.Collections;
+@@ -116,7 +116,6 @@ import java.util.Collections;
   */
  @DelegateDeserialization(CraftMetaItem.SerializableMeta.class)
  class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
@@ -134,7 +114,7 @@ index c28ea1cef0620ba2956139c074fead3c2da2e5cb..c9b72f902378df9ede02e6c0731d6b53
      static class ItemMetaKey {
  
          @Retention(RetentionPolicy.SOURCE)
-@@ -1748,4 +1738,68 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
+@@ -1747,4 +1746,68 @@ class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDataMeta {
          return valid;
      }
      // Paper end
