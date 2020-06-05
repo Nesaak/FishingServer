@@ -1,0 +1,446 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Fri, 5 Jun 2020 18:24:02 -0400
+Subject: [PATCH] Support Live Meta in CraftItemStack through LiveMetaObject
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+index e92fb8d5468d8c887563e074e7b3d06d3b65255f..8d1d8ef5493b0d1fa420c512db90fb075dcff08e 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/CraftItemStack.java
+@@ -571,7 +571,7 @@ public final class CraftItemStack extends ItemStack {
+ 
+     @Override
+     public ItemMeta getMetaMirror() {
+-        return null;
++        return new LiveMetaObject(getTag());
+     }
+ 
+     @Override
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/LiveMetaObject.java b/src/main/java/org/bukkit/craftbukkit/inventory/LiveMetaObject.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..3022f54ae49c6151d14d860e318ac7238c667aac
+--- /dev/null
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/LiveMetaObject.java
+@@ -0,0 +1,421 @@
++package org.bukkit.craftbukkit.inventory;
++
++import com.destroystokyo.paper.Namespaced;
++import com.google.common.collect.Multimap;
++import net.minecraft.server.NBTTagCompound;
++import net.minecraft.server.NBTTagList;
++import net.minecraft.server.NBTTagString;
++import org.bukkit.Material;
++import org.bukkit.attribute.Attribute;
++import org.bukkit.attribute.AttributeModifier;
++import org.bukkit.craftbukkit.util.CraftMagicNumbers;
++import org.bukkit.enchantments.Enchantment;
++import org.bukkit.inventory.EquipmentSlot;
++import org.bukkit.inventory.ItemFlag;
++import org.bukkit.inventory.meta.ItemMeta;
++import org.bukkit.inventory.meta.tags.CustomItemTagContainer;
++import org.bukkit.persistence.PersistentDataContainer;
++
++import java.util.ArrayList;
++import java.util.Collection;
++import java.util.EnumSet;
++import java.util.List;
++import java.util.Map;
++import java.util.Set;
++
++import static org.bukkit.craftbukkit.inventory.CraftMetaItem.*;
++
++public class LiveMetaObject implements ItemMeta {
++
++    private NBTTagCompound tag;
++
++    public LiveMetaObject(NBTTagCompound tag) {
++        this.tag = tag;
++    }
++
++    public boolean has(String key) {
++        return tag.hasKey(key);
++    }
++
++    public NBTTagCompound get(String key) {
++        if (!has(key)) return null;
++        return tag.getCompound(key);
++    }
++
++    public NBTTagCompound getOrCreateCompound(String key) {
++        if (has(key)) {
++            return tag.getCompound(key);
++        }
++        NBTTagCompound compound = new NBTTagCompound();
++        tag.set(key, compound);
++        return compound;
++    }
++
++    // Display Name
++
++    @Override
++    public boolean hasDisplayName() {
++        NBTTagCompound display = get(DISPLAY.NBT);
++        return (display == null) ? false : display.hasKey(NAME.NBT);
++    }
++
++    @Override
++    public String getDisplayName() {
++        NBTTagCompound display = get(DISPLAY.NBT);
++        return (display == null) ? "" : display.getString(NAME.NBT);
++    }
++
++    @Override
++    public void setDisplayName(String name) {
++        NBTTagCompound display = getOrCreateCompound(DISPLAY.NBT);
++        display.setString(NAME.NBT, name);
++    }
++
++    // Localized Name
++
++    @Override
++    public boolean hasLocalizedName() {
++        NBTTagCompound display = get(DISPLAY.NBT);
++        return (display == null) ? false : display.hasKey(LOCNAME.NBT);
++    }
++
++    @Override
++    public String getLocalizedName() {
++        NBTTagCompound display = get(DISPLAY.NBT);
++        return (display == null) ? "" : display.getString(LOCNAME.NBT);
++    }
++
++    @Override
++    public void setLocalizedName(String name) {
++        NBTTagCompound display = getOrCreateCompound(DISPLAY.NBT);
++        display.setString(LOCNAME.NBT, name);
++    }
++
++    // Lore
++
++    @Override
++    public boolean hasLore() {
++        NBTTagCompound display = get(DISPLAY.NBT);
++        return (display == null) ? false : display.hasKey(LORE.NBT);
++    }
++
++    @Override
++    public List<String> getLore() {
++        NBTTagCompound display = get(DISPLAY.NBT);
++        if (display == null || !display.hasKey(LORE.NBT)) return null;
++        NBTTagList list = display.getList(LORE.NBT, CraftMagicNumbers.NBT.TAG_STRING);;
++        List<String> lore = new ArrayList<>();
++        for (int index = 0; index < list.size(); index++) {
++            lore.add(list.getString(index));
++        }
++        return lore;
++    }
++
++    @Override
++    public void setLore(List<String> lore) {
++        NBTTagCompound display = getOrCreateCompound(DISPLAY.NBT);
++        NBTTagList list = new NBTTagList();
++        for (int index = 0; index < lore.size(); index++) {
++            list.add(NBTTagString.a(lore.get(index)));
++        }
++        display.set(LORE.NBT, list);
++    }
++
++    // Custom Data Models
++
++    @Override
++    public boolean hasCustomModelData() {
++        return tag.hasKeyOfType(CUSTOM_MODEL_DATA.NBT, CraftMagicNumbers.NBT.TAG_INT);
++    }
++
++    @Override
++    public int getCustomModelData() {
++        return tag.getInt(CUSTOM_MODEL_DATA.NBT);
++    }
++
++    @Override
++    public void setCustomModelData(Integer data) {
++        tag.setInt(CUSTOM_MODEL_DATA.NBT, data);
++    }
++
++    // Enchants - These are not optimized, but not planning on doing anything with them so it'll stay like this for now
++
++    @Override
++    public boolean hasEnchants() {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public boolean hasEnchant(Enchantment ench) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public int getEnchantLevel(Enchantment ench) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public Map<Enchantment, Integer> getEnchants() {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public boolean addEnchant(Enchantment ench, int level, boolean ignoreLevelRestriction) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public boolean removeEnchant(Enchantment ench) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public boolean hasConflictingEnchant(Enchantment ench) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    // ItemFlags
++
++    @Override
++    public void addItemFlags(ItemFlag... itemFlags) {
++        int hide = tag.getInt(HIDEFLAGS.NBT);
++        for (ItemFlag f : itemFlags) {
++            hide |= (1 << f.ordinal());
++        }
++        if (hide != 0) tag.setInt(HIDEFLAGS.NBT, hide);
++    }
++
++    @Override
++    public void removeItemFlags(ItemFlag... itemFlags) {
++        int hide = tag.getInt(HIDEFLAGS.NBT);
++        int origin = hide;
++        for (ItemFlag f : itemFlags) {
++            hide &= ~(1 << f.ordinal());
++        }
++        if (origin != hide) tag.setInt(HIDEFLAGS.NBT, hide);
++    }
++
++    @Override
++    public Set<ItemFlag> getItemFlags() {
++        Set<ItemFlag> currentFlags = EnumSet.noneOf(ItemFlag.class);
++        for (ItemFlag f : ItemFlag.values()) {
++            if (hasItemFlag(f)) {
++                currentFlags.add(f);
++            }
++        }
++        return currentFlags;
++    }
++
++    @Override
++    public boolean hasItemFlag(ItemFlag flag) {
++        int bitModifier = (1 << flag.ordinal());
++        return (tag.getInt(HIDEFLAGS.NBT) & bitModifier) == bitModifier;
++    }
++
++    // Unbreakable
++
++    @Override
++    public boolean isUnbreakable() {
++        return tag.getBoolean(UNBREAKABLE.NBT);
++    }
++
++    @Override
++    public void setUnbreakable(boolean unbreakable) {
++        tag.setBoolean(UNBREAKABLE.NBT, unbreakable);
++    }
++
++    // Attributes - not supported for now, may have a use case later
++
++    @Override
++    public boolean hasAttributeModifiers() {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public Multimap<Attribute, AttributeModifier> getAttributeModifiers() {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public Multimap<Attribute, AttributeModifier> getAttributeModifiers(EquipmentSlot slot) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public Collection<AttributeModifier> getAttributeModifiers(Attribute attribute) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public boolean addAttributeModifier(Attribute attribute, AttributeModifier modifier) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public void setAttributeModifiers(Multimap<Attribute, AttributeModifier> attributeModifiers) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public boolean removeAttributeModifier(Attribute attribute) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public boolean removeAttributeModifier(EquipmentSlot slot) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public boolean removeAttributeModifier(Attribute attribute, AttributeModifier modifier) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    // Data containers - using NBT API
++
++    @Override
++    public CustomItemTagContainer getCustomTagContainer() {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public PersistentDataContainer getPersistentDataContainer() {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    // Version - not supported
++
++    @Override
++    public void setVersion(int version) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    // Destroyable keys - Don't have a use case, not supported
++
++    @Override
++    public Set<Material> getCanDestroy() {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public void setCanDestroy(Set<Material> canDestroy) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public Set<Material> getCanPlaceOn() {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public void setCanPlaceOn(Set<Material> canPlaceOn) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public Set<Namespaced> getDestroyableKeys() {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public void setDestroyableKeys(Collection<Namespaced> canDestroy) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public Set<Namespaced> getPlaceableKeys() {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public void setPlaceableKeys(Collection<Namespaced> canPlaceOn) {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public boolean hasPlaceableKeys() {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    @Override
++    public boolean hasDestroyableKeys() {
++        throw new RuntimeException("Operation not supported on a live meta object.");
++    }
++
++    // NBT API - Hook right into tag :)
++
++    @Override
++    public boolean hasNBT(String key) {
++        return tag.hasKey(key);
++    }
++
++    @Override
++    public void removeNBT(String key) {
++        tag.remove(key);
++    }
++
++    @Override
++    public void setNBT(String key, String value) {
++        tag.setString(key, value);
++    }
++
++    @Override
++    public void setNBT(String key, int value) {
++        tag.setInt(key, value);
++    }
++
++    @Override
++    public void setNBT(String key, long value) {
++        tag.setLong(key, value);
++    }
++
++    @Override
++    public void setNBT(String key, double value) {
++        tag.setDouble(key, value);
++    }
++
++    @Override
++    public void setNBT(String key, byte value) {
++        tag.setByte(key, value);
++    }
++
++    @Override
++    public String getNBTString(String key) {
++        return tag.getString(key);
++    }
++
++    @Override
++    public int getNBTInt(String key) {
++        return tag.getInt(key);
++    }
++
++    @Override
++    public long getNBTLong(String key) {
++        return tag.getLong(key);
++    }
++
++    @Override
++    public double getNBTDouble(String key) {
++        return tag.getDouble(key);
++    }
++
++    @Override
++    public byte getNBTByte(String key) {
++        return tag.getByte(key);
++    }
++
++    // Serialization - we should not need this, but it was easy to do.
++
++    @Override
++    public Map<String, Object> serialize() {
++        return (Map<String, Object>) (Map<String, ? extends Object>) tag.map;
++    }
++
++    // Cloning - simply clone tag :)
++
++    @Override
++    public ItemMeta clone() {
++        return new LiveMetaObject(tag.clone());
++    }
++}
