@@ -1,0 +1,78 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Mon, 8 Jun 2020 11:57:07 -0400
+Subject: [PATCH] Fixed Display Tags in LiveMetaObject
+
+
+diff --git a/src/main/java/org/bukkit/craftbukkit/inventory/LiveMetaObject.java b/src/main/java/org/bukkit/craftbukkit/inventory/LiveMetaObject.java
+index 3022f54ae49c6151d14d860e318ac7238c667aac..1e9f770fa8a7d2e687197388efdd710ce1291765 100644
+--- a/src/main/java/org/bukkit/craftbukkit/inventory/LiveMetaObject.java
++++ b/src/main/java/org/bukkit/craftbukkit/inventory/LiveMetaObject.java
+@@ -62,13 +62,14 @@ public class LiveMetaObject implements ItemMeta {
+     @Override
+     public String getDisplayName() {
+         NBTTagCompound display = get(DISPLAY.NBT);
+-        return (display == null) ? "" : display.getString(NAME.NBT);
++        return jsonToDisplay(display.getString(NAME.NBT));
+     }
+ 
+     @Override
+     public void setDisplayName(String name) {
++        if (name == null) return;
+         NBTTagCompound display = getOrCreateCompound(DISPLAY.NBT);
+-        display.setString(NAME.NBT, name);
++        display.setString(NAME.NBT, displayToJson(name));
+     }
+ 
+     // Localized Name
+@@ -82,13 +83,14 @@ public class LiveMetaObject implements ItemMeta {
+     @Override
+     public String getLocalizedName() {
+         NBTTagCompound display = get(DISPLAY.NBT);
+-        return (display == null) ? "" : display.getString(LOCNAME.NBT);
++        return jsonToDisplay(display.getString(LOCNAME.NBT));
+     }
+ 
+     @Override
+     public void setLocalizedName(String name) {
++        if (name == null) return;
+         NBTTagCompound display = getOrCreateCompound(DISPLAY.NBT);
+-        display.setString(LOCNAME.NBT, name);
++        display.setString(LOCNAME.NBT, displayToJson(name));
+     }
+ 
+     // Lore
+@@ -106,7 +108,7 @@ public class LiveMetaObject implements ItemMeta {
+         NBTTagList list = display.getList(LORE.NBT, CraftMagicNumbers.NBT.TAG_STRING);;
+         List<String> lore = new ArrayList<>();
+         for (int index = 0; index < list.size(); index++) {
+-            lore.add(list.getString(index));
++            lore.add(jsonToDisplay(list.getString(index)));
+         }
+         return lore;
+     }
+@@ -116,7 +118,7 @@ public class LiveMetaObject implements ItemMeta {
+         NBTTagCompound display = getOrCreateCompound(DISPLAY.NBT);
+         NBTTagList list = new NBTTagList();
+         for (int index = 0; index < lore.size(); index++) {
+-            list.add(NBTTagString.a(lore.get(index)));
++            list.add(NBTTagString.a(displayToJson(lore.get(index))));
+         }
+         display.set(LORE.NBT, list);
+     }
+@@ -418,4 +420,15 @@ public class LiveMetaObject implements ItemMeta {
+     public ItemMeta clone() {
+         return new LiveMetaObject(tag.clone());
+     }
++
++    // Display Utility Methods
++
++    public static String displayToJson(String display) {
++        return "{\"text\":\"" + display + "\"}";
++    }
++
++    public static String jsonToDisplay(String json) {
++        if (json == null || json.equals("")) return "";
++        return json.split("\"")[3];
++    }
+ }
