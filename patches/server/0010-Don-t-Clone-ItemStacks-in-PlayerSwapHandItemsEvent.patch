@@ -1,0 +1,19 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Mon, 8 Jun 2020 11:15:49 -0400
+Subject: [PATCH] Don't Clone ItemStacks in PlayerSwapHandItemsEvent
+
+
+diff --git a/src/main/java/net/minecraft/server/PlayerConnection.java b/src/main/java/net/minecraft/server/PlayerConnection.java
+index d52fbda79fe1c52d3ddb53c0f1c1f521d7620702..424fe68a4df9c4e558425c99e8c5f439d7157fc8 100644
+--- a/src/main/java/net/minecraft/server/PlayerConnection.java
++++ b/src/main/java/net/minecraft/server/PlayerConnection.java
+@@ -1299,7 +1299,7 @@ public class PlayerConnection implements PacketListenerPlayIn {
+                     // CraftBukkit start - inspiration taken from DispenserRegistry (See SpigotCraft#394)
+                     CraftItemStack mainHand = CraftItemStack.asCraftMirror(itemstack);
+                     CraftItemStack offHand = CraftItemStack.asCraftMirror(this.player.b(EnumHand.MAIN_HAND));
+-                    PlayerSwapHandItemsEvent swapItemsEvent = new PlayerSwapHandItemsEvent(getPlayer(), mainHand.clone(), offHand.clone());
++                    PlayerSwapHandItemsEvent swapItemsEvent = new PlayerSwapHandItemsEvent(getPlayer(), mainHand, offHand);
+                     this.server.getPluginManager().callEvent(swapItemsEvent);
+                     if (swapItemsEvent.isCancelled()) {
+                         return;
