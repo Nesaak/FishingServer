@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Sun, 14 Jun 2020 16:12:52 -0400
+Subject: [PATCH] Add HookBobbingEvent
+
+
+diff --git a/src/main/java/com/destroystokyo/paper/event/entity/HookBobbingEvent.java b/src/main/java/com/destroystokyo/paper/event/entity/HookBobbingEvent.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..2bc1f3071b41ce9b40d3522d14fe29b82bbad860
+--- /dev/null
++++ b/src/main/java/com/destroystokyo/paper/event/entity/HookBobbingEvent.java
+@@ -0,0 +1,38 @@
++package com.destroystokyo.paper.event.entity;
++
++import org.bukkit.entity.EntityType;
++import org.bukkit.entity.FishHook;
++import org.bukkit.event.HandlerList;
++import org.bukkit.event.entity.EntityEvent;
++import org.jetbrains.annotations.NotNull;
++
++public class HookBobbingEvent extends EntityEvent {
++
++    private static final HandlerList handlerList = new HandlerList();
++    private boolean cancelled = false;
++
++    public HookBobbingEvent(FishHook hook) {
++        super(hook);
++    }
++
++    @NotNull
++    public FishHook getEntity() {
++        return (FishHook) super.getEntity();
++    }
++
++    @Override
++    public @NotNull EntityType getEntityType() {
++        return EntityType.FISHING_HOOK;
++    }
++
++    @NotNull
++    public static HandlerList getHandlerList() {
++        return handlerList;
++    }
++
++    @NotNull
++    @Override
++    public HandlerList getHandlers() {
++        return handlerList;
++    }
++}

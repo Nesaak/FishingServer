@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Sun, 14 Jun 2020 16:15:52 -0400
+Subject: [PATCH] Implement HookBibbingEvent
+
+
+diff --git a/src/main/java/net/minecraft/server/EntityFishingHook.java b/src/main/java/net/minecraft/server/EntityFishingHook.java
+index a3ab37102e4b06715b2b69e62144971d7d4b8512..189a1cc71cb17dea9c8530a390b21a842e962861 100644
+--- a/src/main/java/net/minecraft/server/EntityFishingHook.java
++++ b/src/main/java/net/minecraft/server/EntityFishingHook.java
+@@ -1,5 +1,8 @@
+ package net.minecraft.server;
+ 
++import com.destroystokyo.paper.event.entity.HookBobbingEvent;
++import org.bukkit.entity.FishHook;
++
+ import javax.annotation.Nullable;
+ 
+ public class EntityFishingHook extends Entity {
+@@ -131,6 +134,7 @@ public class EntityFishingHook extends Entity {
+                 return;
+             }
+             if (depth > 0.0F) {
++                new HookBobbingEvent((FishHook) getBukkitEntity()).callEvent();
+                 this.setMot(this.getMot().d(0.3D, 0.2D, 0.3D));
+                 this.hookState = HookState.BOBBING;
+                 return;
