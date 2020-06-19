@@ -1,0 +1,350 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Fri, 19 Jun 2020 18:39:24 -0400
+Subject: [PATCH] Add Fake Spawn Packet Option to Entities For Disguises
+
+
+diff --git a/src/main/java/net/minecraft/server/Entity.java b/src/main/java/net/minecraft/server/Entity.java
+index e0ab058bf947ea10b37eadf6122292e708bd3809..ecd9b3ea65fa22b0ea561d82732ada3156c3dad0 100644
+--- a/src/main/java/net/minecraft/server/Entity.java
++++ b/src/main/java/net/minecraft/server/Entity.java
+@@ -202,6 +202,8 @@ public abstract class Entity implements INamableTileEntity, ICommandListener, Ke
+     // Spigot end
+     public boolean shouldBeRemoved; // Paper
+ 
++    public Packet fakeSpawnPacket;
++
+     public float getBukkitYaw() {
+         return this.yaw;
+     }
+@@ -3378,7 +3380,12 @@ public abstract class Entity implements INamableTileEntity, ICommandListener, Ke
+         return this.size.height;
+     }
+ 
+-    public abstract Packet<?> L();
++    public Packet<?> L() {
++        if (fakeSpawnPacket != null) {
++            return fakeSpawnPacket;
++        }
++        return new PacketPlayOutSpawnEntity(this);
++    }
+ 
+     public EntitySize a(EntityPose entitypose) {
+         return this.f.k();
+diff --git a/src/main/java/net/minecraft/server/EntityAreaEffectCloud.java b/src/main/java/net/minecraft/server/EntityAreaEffectCloud.java
+index 44289c23013d14af589762442d83ba5a2c79c4ad..851fbe669e0670f4bbf4157b60c71b28a5641a56 100644
+--- a/src/main/java/net/minecraft/server/EntityAreaEffectCloud.java
++++ b/src/main/java/net/minecraft/server/EntityAreaEffectCloud.java
+@@ -473,11 +473,6 @@ public class EntityAreaEffectCloud extends Entity {
+         return EnumPistonReaction.IGNORE;
+     }
+ 
+-    @Override
+-    public Packet<?> L() {
+-        return new PacketPlayOutSpawnEntity(this);
+-    }
+-
+     @Override
+     public EntitySize a(EntityPose entitypose) {
+         return EntitySize.b(this.getRadius() * 2.0F, 0.5F);
+diff --git a/src/main/java/net/minecraft/server/EntityArrow.java b/src/main/java/net/minecraft/server/EntityArrow.java
+index 9c97edf9c9e9a8cdf029264f6b563090142c686b..89422372f4f23279a394f5436552e277d336a989 100644
+--- a/src/main/java/net/minecraft/server/EntityArrow.java
++++ b/src/main/java/net/minecraft/server/EntityArrow.java
+@@ -658,6 +658,9 @@ public abstract class EntityArrow extends Entity implements IProjectile {
+ 
+     @Override
+     public Packet<?> L() {
++        if (fakeSpawnPacket != null) {
++            return fakeSpawnPacket;
++        }
+         Entity entity = this.getShooter();
+ 
+         return new PacketPlayOutSpawnEntity(this, entity == null ? 0 : entity.getId());
+diff --git a/src/main/java/net/minecraft/server/EntityBoat.java b/src/main/java/net/minecraft/server/EntityBoat.java
+index fdf306e80a3f1c853cde3df7924fccaad797e823..9c67efd54ee3c794e5c14f0c3948d42fb6e69337 100644
+--- a/src/main/java/net/minecraft/server/EntityBoat.java
++++ b/src/main/java/net/minecraft/server/EntityBoat.java
+@@ -896,11 +896,6 @@ public class EntityBoat extends Entity {
+         return list.isEmpty() ? null : (Entity) list.get(0);
+     }
+ 
+-    @Override
+-    public Packet<?> L() {
+-        return new PacketPlayOutSpawnEntity(this);
+-    }
+-
+     public static enum EnumBoatType {
+ 
+         OAK(Blocks.OAK_PLANKS, "oak"), SPRUCE(Blocks.SPRUCE_PLANKS, "spruce"), BIRCH(Blocks.BIRCH_PLANKS, "birch"), JUNGLE(Blocks.JUNGLE_PLANKS, "jungle"), ACACIA(Blocks.ACACIA_PLANKS, "acacia"), DARK_OAK(Blocks.DARK_OAK_PLANKS, "dark_oak");
+diff --git a/src/main/java/net/minecraft/server/EntityEnderCrystal.java b/src/main/java/net/minecraft/server/EntityEnderCrystal.java
+index a57d0089d86fcf42224cbf3e86cf179a63caab18..7f50c2439b58ca5cd9b056d7938db66a2ac7b83e 100644
+--- a/src/main/java/net/minecraft/server/EntityEnderCrystal.java
++++ b/src/main/java/net/minecraft/server/EntityEnderCrystal.java
+@@ -146,9 +146,4 @@ public class EntityEnderCrystal extends Entity {
+     public boolean isShowingBottom() {
+         return (Boolean) this.getDataWatcher().get(EntityEnderCrystal.d);
+     }
+-
+-    @Override
+-    public Packet<?> L() {
+-        return new PacketPlayOutSpawnEntity(this);
+-    }
+ }
+diff --git a/src/main/java/net/minecraft/server/EntityEvokerFangs.java b/src/main/java/net/minecraft/server/EntityEvokerFangs.java
+index a297b376e97bd636ab565741e9b742124e56ee7f..e749392b58ae2e81d2e86715949a3ef23ac16c24 100644
+--- a/src/main/java/net/minecraft/server/EntityEvokerFangs.java
++++ b/src/main/java/net/minecraft/server/EntityEvokerFangs.java
+@@ -128,8 +128,4 @@ public class EntityEvokerFangs extends Entity {
+         }
+     }
+ 
+-    @Override
+-    public Packet<?> L() {
+-        return new PacketPlayOutSpawnEntity(this);
+-    }
+ }
+diff --git a/src/main/java/net/minecraft/server/EntityExperienceOrb.java b/src/main/java/net/minecraft/server/EntityExperienceOrb.java
+index 53c6c3389216c1fc5c0789b4a1621acb239cc9ec..c24d92c6dadf44a114893be0ec8c7224fff0815f 100644
+--- a/src/main/java/net/minecraft/server/EntityExperienceOrb.java
++++ b/src/main/java/net/minecraft/server/EntityExperienceOrb.java
+@@ -294,9 +294,4 @@ public class EntityExperienceOrb extends Entity {
+     public boolean bA() {
+         return false;
+     }
+-
+-    @Override
+-    public Packet<?> L() {
+-        return new PacketPlayOutSpawnEntityExperienceOrb(this);
+-    }
+ }
+diff --git a/src/main/java/net/minecraft/server/EntityFallingBlock.java b/src/main/java/net/minecraft/server/EntityFallingBlock.java
+index 6683f7c5f31b88187961335c5f708b8a4f77b5af..1f2bf46c4570b31ad132e9c790c60133a3fb8849 100644
+--- a/src/main/java/net/minecraft/server/EntityFallingBlock.java
++++ b/src/main/java/net/minecraft/server/EntityFallingBlock.java
+@@ -294,6 +294,9 @@ public class EntityFallingBlock extends Entity {
+ 
+     @Override
+     public Packet<?> L() {
++        if (fakeSpawnPacket != null) {
++            return fakeSpawnPacket;
++        }
+         return new PacketPlayOutSpawnEntity(this, Block.getCombinedId(this.getBlock()));
+     }
+ }
+diff --git a/src/main/java/net/minecraft/server/EntityFireball.java b/src/main/java/net/minecraft/server/EntityFireball.java
+index 6756c79b31aa04a110eeedd3c44b11abc34f4b5f..f69f2dcd5db5646f13ee8bb7c537588a79d6e917 100644
+--- a/src/main/java/net/minecraft/server/EntityFireball.java
++++ b/src/main/java/net/minecraft/server/EntityFireball.java
+@@ -213,6 +213,9 @@ public abstract class EntityFireball extends Entity {
+ 
+     @Override
+     public Packet<?> L() {
++        if (fakeSpawnPacket != null) {
++            return fakeSpawnPacket;
++        }
+         int i = this.shooter == null ? 0 : this.shooter.getId();
+ 
+         return new PacketPlayOutSpawnEntity(this.getId(), this.getUniqueID(), this.locX(), this.locY(), this.locZ(), this.pitch, this.yaw, this.getEntityType(), i, new Vec3D(this.dirX, this.dirY, this.dirZ));
+diff --git a/src/main/java/net/minecraft/server/EntityFireworks.java b/src/main/java/net/minecraft/server/EntityFireworks.java
+index 5c3731f68a31b73b886b872eba69de483f78a2aa..e3eac8172d0a960f0c18a51d5e46b0bcc7020bbe 100644
+--- a/src/main/java/net/minecraft/server/EntityFireworks.java
++++ b/src/main/java/net/minecraft/server/EntityFireworks.java
+@@ -313,11 +313,6 @@ public class EntityFireworks extends Entity implements IProjectile {
+         return false;
+     }
+ 
+-    @Override
+-    public Packet<?> L() {
+-        return new PacketPlayOutSpawnEntity(this);
+-    }
+-
+     @Override
+     public void shoot(double d0, double d1, double d2, float f, float f1) {
+         float f2 = MathHelper.sqrt(d0 * d0 + d1 * d1 + d2 * d2);
+diff --git a/src/main/java/net/minecraft/server/EntityFishingHook.java b/src/main/java/net/minecraft/server/EntityFishingHook.java
+index 189a1cc71cb17dea9c8530a390b21a842e962861..dce81c07106f334efdadcda5da0a2ffc6b91e96f 100644
+--- a/src/main/java/net/minecraft/server/EntityFishingHook.java
++++ b/src/main/java/net/minecraft/server/EntityFishingHook.java
+@@ -265,6 +265,9 @@ public class EntityFishingHook extends Entity {
+ 
+     @Override
+     public Packet<?> L() {
++        if (fakeSpawnPacket != null) {
++            return fakeSpawnPacket;
++        }
+         EntityHuman entityhuman = this.getOwner();
+         return new PacketPlayOutSpawnEntity(this, entityhuman == null ? this.getId() : entityhuman.getId());
+     }
+diff --git a/src/main/java/net/minecraft/server/EntityItem.java b/src/main/java/net/minecraft/server/EntityItem.java
+index 2926fbb95705f4389ca599c3bf0421267b83d401..290ea486f477d906991f860165720feacccf521b 100644
+--- a/src/main/java/net/minecraft/server/EntityItem.java
++++ b/src/main/java/net/minecraft/server/EntityItem.java
+@@ -488,9 +488,4 @@ public class EntityItem extends Entity {
+         return world.paperConfig.altItemDespawnRateMap.getOrDefault(material, world.spigotConfig.itemDespawnRate);
+     }
+     // Paper end
+-
+-    @Override
+-    public Packet<?> L() {
+-        return new PacketPlayOutSpawnEntity(this);
+-    }
+ }
+diff --git a/src/main/java/net/minecraft/server/EntityItemFrame.java b/src/main/java/net/minecraft/server/EntityItemFrame.java
+index f8a2f32f1d93e3cdbc7c40783beef05f5f05794f..66cad0839dadd07189d529547764145a4b9af1f7 100644
+--- a/src/main/java/net/minecraft/server/EntityItemFrame.java
++++ b/src/main/java/net/minecraft/server/EntityItemFrame.java
+@@ -343,6 +343,9 @@ public class EntityItemFrame extends EntityHanging {
+ 
+     @Override
+     public Packet<?> L() {
++        if (fakeSpawnPacket != null) {
++            return fakeSpawnPacket;
++        }
+         return new PacketPlayOutSpawnEntity(this, this.getEntityType(), this.direction.b(), this.getBlockPosition());
+     }
+ }
+diff --git a/src/main/java/net/minecraft/server/EntityLeash.java b/src/main/java/net/minecraft/server/EntityLeash.java
+index 7b1776e05d8d88c8d0509b3c0d27ef1903b7fa8b..f6b15682ab8c642ddf16c97708f8cab0a9410b25 100644
+--- a/src/main/java/net/minecraft/server/EntityLeash.java
++++ b/src/main/java/net/minecraft/server/EntityLeash.java
+@@ -157,6 +157,9 @@ public class EntityLeash extends EntityHanging {
+ 
+     @Override
+     public Packet<?> L() {
++        if (fakeSpawnPacket != null) {
++            return fakeSpawnPacket;
++        }
+         return new PacketPlayOutSpawnEntity(this, this.getEntityType(), 0, this.getBlockPosition());
+     }
+ }
+diff --git a/src/main/java/net/minecraft/server/EntityLightning.java b/src/main/java/net/minecraft/server/EntityLightning.java
+index bdb534deb47a945d5cbfad688eeab5e3388a4df5..978cc4a0e393fe50a48f1924ce4e39dbe0f72b67 100644
+--- a/src/main/java/net/minecraft/server/EntityLightning.java
++++ b/src/main/java/net/minecraft/server/EntityLightning.java
+@@ -161,6 +161,9 @@ public class EntityLightning extends Entity {
+ 
+     @Override
+     public Packet<?> L() {
++        if (fakeSpawnPacket != null) {
++            return fakeSpawnPacket;
++        }
+         return new PacketPlayOutSpawnEntityWeather(this);
+     }
+ }
+diff --git a/src/main/java/net/minecraft/server/EntityLiving.java b/src/main/java/net/minecraft/server/EntityLiving.java
+index eb4e34a18e462f98c30a61439ec30c5df9e054ca..6892e8e061881435d4e95914259c20892215faa9 100644
+--- a/src/main/java/net/minecraft/server/EntityLiving.java
++++ b/src/main/java/net/minecraft/server/EntityLiving.java
+@@ -3170,6 +3170,9 @@ public abstract class EntityLiving extends Entity {
+ 
+     @Override
+     public Packet<?> L() {
++        if (fakeSpawnPacket != null) {
++            return fakeSpawnPacket;
++        }
+         return new PacketPlayOutSpawnEntityLiving(this);
+     }
+ 
+diff --git a/src/main/java/net/minecraft/server/EntityLlamaSpit.java b/src/main/java/net/minecraft/server/EntityLlamaSpit.java
+index b7a92e1002655f7d8c9f69c7c528342d6dc8419c..8990f3aff4e0dcc002f1b3790b6da98f15ad318a 100644
+--- a/src/main/java/net/minecraft/server/EntityLlamaSpit.java
++++ b/src/main/java/net/minecraft/server/EntityLlamaSpit.java
+@@ -143,9 +143,4 @@ public class EntityLlamaSpit extends Entity implements IProjectile {
+ 
+         this.c = null;
+     }
+-
+-    @Override
+-    public Packet<?> L() {
+-        return new PacketPlayOutSpawnEntity(this);
+-    }
+ }
+diff --git a/src/main/java/net/minecraft/server/EntityMinecartAbstract.java b/src/main/java/net/minecraft/server/EntityMinecartAbstract.java
+index 665bbe07fa5f5c048758156b92f7b002e851c132..7ff5fd6e329f23fe2c1a6aa0279914442b72218c 100644
+--- a/src/main/java/net/minecraft/server/EntityMinecartAbstract.java
++++ b/src/main/java/net/minecraft/server/EntityMinecartAbstract.java
+@@ -774,11 +774,6 @@ public abstract class EntityMinecartAbstract extends Entity {
+         this.getDataWatcher().set(EntityMinecartAbstract.g, flag);
+     }
+ 
+-    @Override
+-    public Packet<?> L() {
+-        return new PacketPlayOutSpawnEntity(this);
+-    }
+-
+     public static enum EnumMinecartType {
+ 
+         RIDEABLE, CHEST, FURNACE, TNT, SPAWNER, HOPPER, COMMAND_BLOCK;
+diff --git a/src/main/java/net/minecraft/server/EntityPainting.java b/src/main/java/net/minecraft/server/EntityPainting.java
+index d99a4eaa0b47817d95931a7f1f6dc4fab93a4529..3b92396d2ec8fe2e6a917fd204321565c1477e79 100644
+--- a/src/main/java/net/minecraft/server/EntityPainting.java
++++ b/src/main/java/net/minecraft/server/EntityPainting.java
+@@ -105,6 +105,9 @@ public class EntityPainting extends EntityHanging {
+ 
+     @Override
+     public Packet<?> L() {
++        if (fakeSpawnPacket != null) {
++            return fakeSpawnPacket;
++        }
+         return new PacketPlayOutSpawnEntityPainting(this);
+     }
+ }
+diff --git a/src/main/java/net/minecraft/server/EntityPlayer.java b/src/main/java/net/minecraft/server/EntityPlayer.java
+index c88177b77607519453bb349a8e960d22d73e9f8e..edd84e6d3142e88a38a03f12657d2feb4a2cc4a4 100644
+--- a/src/main/java/net/minecraft/server/EntityPlayer.java
++++ b/src/main/java/net/minecraft/server/EntityPlayer.java
+@@ -1836,6 +1836,9 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
+ 
+     @Override
+     public Packet<?> L() {
++        if (fakeSpawnPacket != null) {
++            return fakeSpawnPacket;
++        }
+         return new PacketPlayOutNamedEntitySpawn(this);
+     }
+ 
+diff --git a/src/main/java/net/minecraft/server/EntityProjectile.java b/src/main/java/net/minecraft/server/EntityProjectile.java
+index f5c8074dcf1c6275bc13eb8f2b67c04ca547877b..abcbb853f507799ca30a06b19028f7f9ad8dceb6 100644
+--- a/src/main/java/net/minecraft/server/EntityProjectile.java
++++ b/src/main/java/net/minecraft/server/EntityProjectile.java
+@@ -229,9 +229,4 @@ public abstract class EntityProjectile extends Entity implements IProjectile {
+ 
+         return this.shooter;
+     }
+-
+-    @Override
+-    public Packet<?> L() {
+-        return new PacketPlayOutSpawnEntity(this);
+-    }
+ }
+diff --git a/src/main/java/net/minecraft/server/EntityShulkerBullet.java b/src/main/java/net/minecraft/server/EntityShulkerBullet.java
+index bac28d46523b96a2c6dc33a897ece51d511a437d..f998d36733c943cd6bf7ad4f83181c60b7d97fd5 100644
+--- a/src/main/java/net/minecraft/server/EntityShulkerBullet.java
++++ b/src/main/java/net/minecraft/server/EntityShulkerBullet.java
+@@ -353,9 +353,4 @@ public class EntityShulkerBullet extends Entity {
+ 
+         return true;
+     }
+-
+-    @Override
+-    public Packet<?> L() {
+-        return new PacketPlayOutSpawnEntity(this);
+-    }
+ }
+diff --git a/src/main/java/net/minecraft/server/EntityTNTPrimed.java b/src/main/java/net/minecraft/server/EntityTNTPrimed.java
+index 9c31edade247baac6811ef3ec98e88a332bcffba..8132aa9cbc6102d7a18b7eb9f45f295272ddc21a 100644
+--- a/src/main/java/net/minecraft/server/EntityTNTPrimed.java
++++ b/src/main/java/net/minecraft/server/EntityTNTPrimed.java
+@@ -165,11 +165,6 @@ public class EntityTNTPrimed extends Entity {
+         return this.fuseTicks;
+     }
+ 
+-    @Override
+-    public Packet<?> L() {
+-        return new PacketPlayOutSpawnEntity(this);
+-    }
+-
+     // Paper start - Optional prevent TNT from moving in water
+     @Override
+     public boolean pushedByWater() {

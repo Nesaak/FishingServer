@@ -1,0 +1,137 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Fri, 19 Jun 2020 18:19:25 -0400
+Subject: [PATCH] Import And Add Generic Constructors For All Spawn Packets
+
+
+diff --git a/src/main/java/net/minecraft/server/PacketPlayOutNamedEntitySpawn.java b/src/main/java/net/minecraft/server/PacketPlayOutNamedEntitySpawn.java
+index fc0197c46c39eb59e94ea3690391b742d96b3a59..79b54ee97c24cdb972d2358c42c16e37b93d220d 100644
+--- a/src/main/java/net/minecraft/server/PacketPlayOutNamedEntitySpawn.java
++++ b/src/main/java/net/minecraft/server/PacketPlayOutNamedEntitySpawn.java
+@@ -25,6 +25,16 @@ public class PacketPlayOutNamedEntitySpawn implements Packet<PacketListenerPlayO
+         this.g = (byte) ((int) (entityhuman.pitch * 256.0F / 360.0F));
+     }
+ 
++    public PacketPlayOutNamedEntitySpawn(int a, UUID b, double c, double d, double e, byte f, byte g) {
++        this.a = a;
++        this.b = b;
++        this.c = c;
++        this.d = d;
++        this.e = e;
++        this.f = f;
++        this.g = g;
++    }
++
+     @Override
+     public void a(PacketDataSerializer packetdataserializer) throws IOException {
+         this.a = packetdataserializer.i();
+diff --git a/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntity.java b/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntity.java
+index 5172fb5ab86d0e60cca85282f321ee2892c95915..e2f24cae8530e06e5bfe09ebf5a9ea7ee84b16cb 100644
+--- a/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntity.java
++++ b/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntity.java
+@@ -47,6 +47,21 @@ public class PacketPlayOutSpawnEntity implements Packet<PacketListenerPlayOut> {
+         this(entity.getId(), entity.getUniqueID(), (double) blockposition.getX(), (double) blockposition.getY(), (double) blockposition.getZ(), entity.pitch, entity.yaw, entitytypes, i, entity.getMot());
+     }
+ 
++    public PacketPlayOutSpawnEntity(int a, UUID b, double c, double d, double e, int f, int g, int h, int i, int j, EntityTypes<?> k, int l) {
++        this.a = a;
++        this.b = b;
++        this.c = c;
++        this.d = d;
++        this.e = e;
++        this.f = f;
++        this.g = g;
++        this.h = h;
++        this.i = i;
++        this.j = j;
++        this.k = k;
++        this.l = l;
++    }
++
+     @Override
+     public void a(PacketDataSerializer packetdataserializer) throws IOException {
+         this.a = packetdataserializer.i();
+@@ -67,7 +82,7 @@ public class PacketPlayOutSpawnEntity implements Packet<PacketListenerPlayOut> {
+     public void b(PacketDataSerializer packetdataserializer) throws IOException {
+         packetdataserializer.d(this.a);
+         packetdataserializer.a(this.b);
+-        packetdataserializer.d(IRegistry.ENTITY_TYPE.a((Object) this.k));
++        packetdataserializer.d(IRegistry.ENTITY_TYPE.a(this.k));
+         packetdataserializer.writeDouble(this.c);
+         packetdataserializer.writeDouble(this.d);
+         packetdataserializer.writeDouble(this.e);
+diff --git a/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntityExperienceOrb.java b/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntityExperienceOrb.java
+index 0f371e9b70fa60a4ba2e5628015918a1e730dfd3..d7847ca28583bbc8004bd45abbfda9c5fa48abfd 100644
+--- a/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntityExperienceOrb.java
++++ b/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntityExperienceOrb.java
+@@ -20,6 +20,14 @@ public class PacketPlayOutSpawnEntityExperienceOrb implements Packet<PacketListe
+         this.e = entityexperienceorb.f();
+     }
+ 
++    public PacketPlayOutSpawnEntityExperienceOrb(int a, double b, double c, double d, int e) {
++        this.a = a;
++        this.b = b;
++        this.c = c;
++        this.d = d;
++        this.e = e;
++    }
++
+     @Override
+     public void a(PacketDataSerializer packetdataserializer) throws IOException {
+         this.a = packetdataserializer.i();
+diff --git a/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntityLiving.java b/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntityLiving.java
+index b5e9e728b7f2d3d0e967b7841f7834abd90696ca..54caee23b6713ac5ebc77f4dd91cbdbc2d6e64b9 100644
+--- a/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntityLiving.java
++++ b/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntityLiving.java
+@@ -23,7 +23,7 @@ public class PacketPlayOutSpawnEntityLiving implements Packet<PacketListenerPlay
+     public PacketPlayOutSpawnEntityLiving(EntityLiving entityliving) {
+         this.a = entityliving.getId();
+         this.b = entityliving.getUniqueID();
+-        this.c = IRegistry.ENTITY_TYPE.a((Object) entityliving.getEntityType());
++        this.c = IRegistry.ENTITY_TYPE.a(entityliving.getEntityType());
+         this.d = entityliving.locX();
+         this.e = entityliving.locY();
+         this.f = entityliving.locZ();
+@@ -41,6 +41,21 @@ public class PacketPlayOutSpawnEntityLiving implements Packet<PacketListenerPlay
+         this.i = (int) (d3 * 8000.0D);
+     }
+ 
++    public PacketPlayOutSpawnEntityLiving(int a, UUID b, int c, double d, double e, double f, int g, int h, int i, byte j, byte k, byte l) {
++        this.a = a;
++        this.b = b;
++        this.c = c;
++        this.d = d;
++        this.e = e;
++        this.f = f;
++        this.g = g;
++        this.h = h;
++        this.i = i;
++        this.j = j;
++        this.k = k;
++        this.l = l;
++    }
++
+     @Override
+     public void a(PacketDataSerializer packetdataserializer) throws IOException {
+         this.a = packetdataserializer.i();
+diff --git a/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntityPainting.java b/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntityPainting.java
+index b15a234062d1c0944bc76b87d37775cc28b475b5..90db49869720dd6697f9b73fd4f2033714c3dcfb 100644
+--- a/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntityPainting.java
++++ b/src/main/java/net/minecraft/server/PacketPlayOutSpawnEntityPainting.java
+@@ -18,7 +18,15 @@ public class PacketPlayOutSpawnEntityPainting implements Packet<PacketListenerPl
+         this.b = entitypainting.getUniqueID();
+         this.c = entitypainting.getBlockPosition();
+         this.d = entitypainting.getDirection();
+-        this.e = IRegistry.MOTIVE.a((Object) entitypainting.art);
++        this.e = IRegistry.MOTIVE.a(entitypainting.art);
++    }
++
++    public PacketPlayOutSpawnEntityPainting(int a, UUID b, BlockPosition c, EnumDirection d, int e) {
++        this.a = a;
++        this.b = b;
++        this.c = c;
++        this.d = d;
++        this.e = e;
+     }
+ 
+     @Override
