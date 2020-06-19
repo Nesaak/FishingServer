@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Nesaak <52047222+Nesaak@users.noreply.github.com>
 Date: Sun, 14 Jun 2020 16:15:52 -0400
-Subject: [PATCH] Implement HookBibbingEvent
+Subject: [PATCH] Implement HookBobbingEvent
 
 
 diff --git a/src/main/java/net/minecraft/server/EntityFishingHook.java b/src/main/java/net/minecraft/server/EntityFishingHook.java
