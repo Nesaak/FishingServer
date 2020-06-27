@@ -1,0 +1,494 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Sat, 27 Jun 2020 09:00:39 -0400
+Subject: [PATCH] Add Utility Entity Packets and DataWatchers
+
+
+diff --git a/src/main/java/net/minecraft/server/DataWatcher.java b/src/main/java/net/minecraft/server/DataWatcher.java
+index be8e705fc3f2c31e4f84f59c977488d8ecd9cae1..c74f96727732e6f91c22ee4db8de2077882e983d 100644
+--- a/src/main/java/net/minecraft/server/DataWatcher.java
++++ b/src/main/java/net/minecraft/server/DataWatcher.java
+@@ -121,16 +121,16 @@ public class DataWatcher {
+     }
+ 
+     public <T> T get(DataWatcherObject<T> datawatcherobject) {
+-        return this.b(datawatcherobject).b();
++        return this.b(datawatcherobject).getValue();
+     }
+ 
+     public <T> void set(DataWatcherObject<T> datawatcherobject, T t0) {
+         DataWatcher.Item<T> datawatcher_item = this.b(datawatcherobject);
+ 
+-        if (ObjectUtils.notEqual(t0, datawatcher_item.b())) {
+-            datawatcher_item.a(t0);
++        if (ObjectUtils.notEqual(t0, datawatcher_item.getValue())) {
++            datawatcher_item.setValue(t0);
+             this.entity.a(datawatcherobject);
+-            datawatcher_item.a(true);
++            datawatcher_item.setDirty(true);
+             this.g = true;
+         }
+ 
+@@ -138,7 +138,7 @@ public class DataWatcher {
+ 
+     // CraftBukkit start - add method from above
+     public <T> void markDirty(DataWatcherObject<T> datawatcherobject) {
+-        this.b(datawatcherobject).a(true);
++        this.b(datawatcherobject).setDirty(true);
+         this.g = true;
+     }
+     // CraftBukkit end
+@@ -170,13 +170,13 @@ public class DataWatcher {
+             while (iterator.hasNext()) {
+                 DataWatcher.Item<?> datawatcher_item = (DataWatcher.Item) iterator.next();
+ 
+-                if (datawatcher_item.c()) {
+-                    datawatcher_item.a(false);
++                if (datawatcher_item.isDirty()) {
++                    datawatcher_item.setDirty(false);
+                     if (list == null) {
+                         list = Lists.newArrayList();
+                     }
+ 
+-                    list.add(datawatcher_item.d());
++                    list.add(datawatcher_item.copy());
+                 }
+             }
+ 
+@@ -195,7 +195,7 @@ public class DataWatcher {
+ 
+         DataWatcher.Item datawatcher_item;
+ 
+-        for (Iterator iterator = this.entries.values().iterator(); iterator.hasNext(); list.add(datawatcher_item.d())) {
++        for (Iterator iterator = this.entries.values().iterator(); iterator.hasNext(); list.add(datawatcher_item.copy())) {
+             datawatcher_item = (DataWatcher.Item) iterator.next();
+             if (list == null) {
+                 list = Lists.newArrayList();
+@@ -207,7 +207,7 @@ public class DataWatcher {
+     }
+ 
+     private static <T> void a(PacketDataSerializer packetdataserializer, DataWatcher.Item<T> datawatcher_item) throws IOException {
+-        DataWatcherObject<T> datawatcherobject = datawatcher_item.a();
++        DataWatcherObject<T> datawatcherobject = datawatcher_item.getAccessor();
+         int i = DataWatcherRegistry.b(datawatcherobject.b());
+ 
+         if (i < 0) {
+@@ -215,7 +215,7 @@ public class DataWatcher {
+         } else {
+             packetdataserializer.writeByte(datawatcherobject.a());
+             packetdataserializer.d(i);
+-            datawatcherobject.b().a(packetdataserializer, datawatcher_item.b());
++            datawatcherobject.b().a(packetdataserializer, datawatcher_item.getValue());
+         }
+     }
+ 
+@@ -259,46 +259,50 @@ public class DataWatcher {
+         while (iterator.hasNext()) {
+             DataWatcher.Item<?> datawatcher_item = (DataWatcher.Item) iterator.next();
+ 
+-            datawatcher_item.a(false);
++            datawatcher_item.setDirty(false);
+         }
+ 
+         // this.lock.readLock().unlock(); // Spigot - not required
+     }
+ 
++    public static <T> Item<T> of(int id, T value, DataWatcherSerializer<T> serializer) {
++        return new Item<T>(new DataWatcherObject<T>(id, serializer), value);
++    }
++
+     public static class Item<T> {
+ 
+-        private final DataWatcherObject<T> a;
+-        private T b;
+-        private boolean c;
++        private final DataWatcherObject<T> acessor;
++        private T value;
++        private boolean dirty;
+ 
+         public Item(DataWatcherObject<T> datawatcherobject, T t0) {
+-            this.a = datawatcherobject;
+-            this.b = t0;
+-            this.c = true;
++            this.acessor = datawatcherobject;
++            this.value = t0;
++            this.dirty = true;
+         }
+ 
+-        public DataWatcherObject<T> a() {
+-            return this.a;
++        public DataWatcherObject<T> getAccessor() {
++            return this.acessor;
+         }
+ 
+-        public void a(T t0) {
+-            this.b = t0;
++        public void setValue(T t0) {
++            this.value = t0;
+         }
+ 
+-        public T b() {
+-            return this.b;
++        public T getValue() {
++            return this.value;
+         }
+ 
+-        public boolean c() {
+-            return this.c;
++        public boolean isDirty() {
++            return this.dirty;
+         }
+ 
+-        public void a(boolean flag) {
+-            this.c = flag;
++        public void setDirty(boolean flag) {
++            this.dirty = flag;
+         }
+ 
+-        public DataWatcher.Item<T> d() {
+-            return new DataWatcher.Item<>(this.a, this.a.b().a(this.b));
++        public DataWatcher.Item<T> copy() {
++            return new DataWatcher.Item<>(this.acessor, this.acessor.b().a(this.value));
+         }
+     }
+ }
+diff --git a/src/main/java/net/minecraft/server/PacketPlayOutEntity.java b/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
+index e5da2b19c1177ba7f88f0aaad9d810bb313ce67b..d3653373ffe1510e9691418e7855772d7456423d 100644
+--- a/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
++++ b/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
+@@ -4,15 +4,15 @@ import java.io.IOException;
+ 
+ public class PacketPlayOutEntity implements Packet<PacketListenerPlayOut> {
+ 
+-    protected int a;
+-    protected short b;
+-    protected short c;
+-    protected short d;
+-    protected byte e;
+-    protected byte f;
+-    protected boolean g;
+-    protected boolean h;
+-    protected boolean i;
++    protected int entityId;
++    protected short xa;
++    protected short ya;
++    protected short za;
++    protected byte yRot;
++    protected byte zRot;
++    protected boolean onGround;
++    protected boolean hasRot;
++    protected boolean hasPos;
+ 
+     public static long a(double d0) {
+         return MathHelper.d(d0 * 4096.0D);
+@@ -25,17 +25,93 @@ public class PacketPlayOutEntity implements Packet<PacketListenerPlayOut> {
+     public PacketPlayOutEntity() {}
+ 
+     public PacketPlayOutEntity(int i) {
+-        this.a = i;
++        this.entityId = i;
++    }
++
++    public PacketPlayOutEntity clone() {
++        return new PacketPlayOutEntity(entityId);
++    }
++
++    public int getEntityId() {
++        return entityId;
++    }
++
++    public void setEntityId(int entityId) {
++        this.entityId = entityId;
++    }
++
++    public short getXa() {
++        return xa;
++    }
++
++    public void setXa(short xa) {
++        this.xa = xa;
++    }
++
++    public short getYa() {
++        return ya;
++    }
++
++    public void setYa(short ya) {
++        this.ya = ya;
++    }
++
++    public short getZa() {
++        return za;
++    }
++
++    public void setZa(short za) {
++        this.za = za;
++    }
++
++    public byte getyRot() {
++        return yRot;
++    }
++
++    public void setyRot(byte yRot) {
++        this.yRot = yRot;
++    }
++
++    public byte getzRot() {
++        return zRot;
++    }
++
++    public void setzRot(byte zRot) {
++        this.zRot = zRot;
++    }
++
++    public boolean isOnGround() {
++        return onGround;
++    }
++
++    public void setOnGround(boolean onGround) {
++        this.onGround = onGround;
++    }
++
++    public boolean isHasRot() {
++        return hasRot;
++    }
++
++    public void setHasRot(boolean hasRot) {
++        this.hasRot = hasRot;
++    }
++
++    public boolean isHasPos() {
++        return hasPos;
++    }
++
++    public void setHasPos(boolean hasPos) {
++        this.hasPos = hasPos;
+     }
+ 
+     @Override
+     public void a(PacketDataSerializer packetdataserializer) throws IOException {
+-        this.a = packetdataserializer.i();
++        this.entityId = packetdataserializer.i();
+     }
+ 
+     @Override
+     public void b(PacketDataSerializer packetdataserializer) throws IOException {
+-        packetdataserializer.d(this.a);
++        packetdataserializer.d(this.entityId);
+     }
+ 
+     public void a(PacketListenerPlayOut packetlistenerplayout) {
+@@ -49,107 +125,122 @@ public class PacketPlayOutEntity implements Packet<PacketListenerPlayOut> {
+     public static class PacketPlayOutEntityLook extends PacketPlayOutEntity {
+ 
+         public PacketPlayOutEntityLook() {
+-            this.h = true;
++            this.hasRot = true;
+         }
+ 
+         public PacketPlayOutEntityLook(int i, byte b0, byte b1, boolean flag) {
+             super(i);
+-            this.e = b0;
+-            this.f = b1;
+-            this.h = true;
+-            this.g = flag;
++            this.yRot = b0;
++            this.zRot = b1;
++            this.hasRot = true;
++            this.onGround = flag;
++        }
++
++        @Override
++        public PacketPlayOutEntityLook clone() {
++            return new PacketPlayOutEntityLook(entityId, yRot, zRot, onGround);
+         }
+ 
+         @Override
+         public void a(PacketDataSerializer packetdataserializer) throws IOException {
+             super.a(packetdataserializer);
+-            this.e = packetdataserializer.readByte();
+-            this.f = packetdataserializer.readByte();
+-            this.g = packetdataserializer.readBoolean();
++            this.yRot = packetdataserializer.readByte();
++            this.zRot = packetdataserializer.readByte();
++            this.onGround = packetdataserializer.readBoolean();
+         }
+ 
+         @Override
+         public void b(PacketDataSerializer packetdataserializer) throws IOException {
+             super.b(packetdataserializer);
+-            packetdataserializer.writeByte(this.e);
+-            packetdataserializer.writeByte(this.f);
+-            packetdataserializer.writeBoolean(this.g);
++            packetdataserializer.writeByte(this.yRot);
++            packetdataserializer.writeByte(this.zRot);
++            packetdataserializer.writeBoolean(this.onGround);
+         }
+     }
+ 
+     public static class PacketPlayOutRelEntityMove extends PacketPlayOutEntity {
+ 
+         public PacketPlayOutRelEntityMove() {
+-            this.i = true;
++            this.hasPos = true;
+         }
+ 
+         public PacketPlayOutRelEntityMove(int i, short short0, short short1, short short2, boolean flag) {
+             super(i);
+-            this.b = short0;
+-            this.c = short1;
+-            this.d = short2;
+-            this.g = flag;
+-            this.i = true;
++            this.xa = short0;
++            this.ya = short1;
++            this.za = short2;
++            this.onGround = flag;
++            this.hasPos = true;
++        }
++
++        @Override
++        public PacketPlayOutRelEntityMove clone() {
++            return new PacketPlayOutRelEntityMove(entityId, xa, ya, za, onGround);
+         }
+ 
+         @Override
+         public void a(PacketDataSerializer packetdataserializer) throws IOException {
+             super.a(packetdataserializer);
+-            this.b = packetdataserializer.readShort();
+-            this.c = packetdataserializer.readShort();
+-            this.d = packetdataserializer.readShort();
+-            this.g = packetdataserializer.readBoolean();
++            this.xa = packetdataserializer.readShort();
++            this.ya = packetdataserializer.readShort();
++            this.za = packetdataserializer.readShort();
++            this.onGround = packetdataserializer.readBoolean();
+         }
+ 
+         @Override
+         public void b(PacketDataSerializer packetdataserializer) throws IOException {
+             super.b(packetdataserializer);
+-            packetdataserializer.writeShort(this.b);
+-            packetdataserializer.writeShort(this.c);
+-            packetdataserializer.writeShort(this.d);
+-            packetdataserializer.writeBoolean(this.g);
++            packetdataserializer.writeShort(this.xa);
++            packetdataserializer.writeShort(this.ya);
++            packetdataserializer.writeShort(this.za);
++            packetdataserializer.writeBoolean(this.onGround);
+         }
+     }
+ 
+     public static class PacketPlayOutRelEntityMoveLook extends PacketPlayOutEntity {
+ 
+         public PacketPlayOutRelEntityMoveLook() {
+-            this.h = true;
+-            this.i = true;
++            this.hasRot = true;
++            this.hasPos = true;
+         }
+ 
+         public PacketPlayOutRelEntityMoveLook(int i, short short0, short short1, short short2, byte b0, byte b1, boolean flag) {
+             super(i);
+-            this.b = short0;
+-            this.c = short1;
+-            this.d = short2;
+-            this.e = b0;
+-            this.f = b1;
+-            this.g = flag;
+-            this.h = true;
+-            this.i = true;
++            this.xa = short0;
++            this.ya = short1;
++            this.za = short2;
++            this.yRot = b0;
++            this.zRot = b1;
++            this.onGround = flag;
++            this.hasRot = true;
++            this.hasPos = true;
++        }
++
++        @Override
++        public PacketPlayOutRelEntityMoveLook clone() {
++            return new PacketPlayOutRelEntityMoveLook(entityId, xa, ya, za, yRot, zRot, onGround);
+         }
+ 
+         @Override
+         public void a(PacketDataSerializer packetdataserializer) throws IOException {
+             super.a(packetdataserializer);
+-            this.b = packetdataserializer.readShort();
+-            this.c = packetdataserializer.readShort();
+-            this.d = packetdataserializer.readShort();
+-            this.e = packetdataserializer.readByte();
+-            this.f = packetdataserializer.readByte();
+-            this.g = packetdataserializer.readBoolean();
++            this.xa = packetdataserializer.readShort();
++            this.ya = packetdataserializer.readShort();
++            this.za = packetdataserializer.readShort();
++            this.yRot = packetdataserializer.readByte();
++            this.zRot = packetdataserializer.readByte();
++            this.onGround = packetdataserializer.readBoolean();
+         }
+ 
+         @Override
+         public void b(PacketDataSerializer packetdataserializer) throws IOException {
+             super.b(packetdataserializer);
+-            packetdataserializer.writeShort(this.b);
+-            packetdataserializer.writeShort(this.c);
+-            packetdataserializer.writeShort(this.d);
+-            packetdataserializer.writeByte(this.e);
+-            packetdataserializer.writeByte(this.f);
+-            packetdataserializer.writeBoolean(this.g);
++            packetdataserializer.writeShort(this.xa);
++            packetdataserializer.writeShort(this.ya);
++            packetdataserializer.writeShort(this.za);
++            packetdataserializer.writeByte(this.yRot);
++            packetdataserializer.writeByte(this.zRot);
++            packetdataserializer.writeBoolean(this.onGround);
+         }
+     }
+ }
+diff --git a/src/main/java/net/minecraft/server/PacketPlayOutEntityMetadata.java b/src/main/java/net/minecraft/server/PacketPlayOutEntityMetadata.java
+index 39f5e73895cf70f1ff1231bdeba986816e579d68..19cf26694fea4756c49ffe50d0bb602081b11be4 100644
+--- a/src/main/java/net/minecraft/server/PacketPlayOutEntityMetadata.java
++++ b/src/main/java/net/minecraft/server/PacketPlayOutEntityMetadata.java
+@@ -1,5 +1,7 @@
+ package net.minecraft.server;
+ 
++import com.google.common.collect.Lists;
++
+ import java.io.IOException;
+ import java.util.List;
+ 
+@@ -21,6 +23,31 @@ public class PacketPlayOutEntityMetadata implements Packet<PacketListenerPlayOut
+ 
+     }
+ 
++    public PacketPlayOutEntityMetadata(int i, List<DataWatcher.Item<?>> b) {
++        this.a = i;
++        this.b = b;
++    }
++
++    public PacketPlayOutEntityMetadata clone() {
++        return new PacketPlayOutEntityMetadata(a, Lists.newArrayList(b));
++    }
++
++    public int getID() {
++        return a;
++    }
++
++    public void setID(int a) {
++        this.a = a;
++    }
++
++    public List<DataWatcher.Item<?>> getItems() {
++        return b;
++    }
++
++    public void setItems(List<DataWatcher.Item<?>> b) {
++        this.b = b;
++    }
++
+     @Override
+     public void a(PacketDataSerializer packetdataserializer) throws IOException {
+         this.a = packetdataserializer.i();

@@ -1,0 +1,227 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Sat, 27 Jun 2020 09:39:27 -0400
+Subject: [PATCH] Add Armor Stand Titles System
+
+
+diff --git a/src/main/java/net/minecraft/server/CustomEntityPacket.java b/src/main/java/net/minecraft/server/CustomEntityPacket.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..35645fae63e77a891549ed3c72136d3b0e8bdda5
+--- /dev/null
++++ b/src/main/java/net/minecraft/server/CustomEntityPacket.java
+@@ -0,0 +1,9 @@
++package net.minecraft.server;
++
++public interface CustomEntityPacket<T extends PacketListener> extends Packet<T> {
++    void setId(int id);
++
++    int getId();
++
++    CustomEntityPacket clone();
++}
+diff --git a/src/main/java/net/minecraft/server/Entity.java b/src/main/java/net/minecraft/server/Entity.java
+index 5a1f34930dd46cc2e4d35ab3e9b3a1a7585a01ae..45af6ad311ea88110b5bb40e266923a00034645d 100644
+--- a/src/main/java/net/minecraft/server/Entity.java
++++ b/src/main/java/net/minecraft/server/Entity.java
+@@ -26,6 +26,7 @@ import org.bukkit.Location;
+ import org.bukkit.Server;
+ import org.bukkit.block.BlockFace;
+ import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.util.CraftChatMessage;
+ import org.bukkit.entity.Hanging;
+ import org.bukkit.entity.LivingEntity;
+ import org.bukkit.entity.Vehicle;
+@@ -212,6 +213,18 @@ public abstract class Entity implements INamableTileEntity, ICommandListener, Ke
+             }, trackedPlayer);
+         }
+     }
++    private String title;
++    public void setTitle(String title) {
++        if (title == null) {
++            if (this.title != null) tracker.trackerEntry.broadcast(new PacketPlayOutEntityDestroy(id + 30000));
++        } else {
++            if (this.title == null) {
++                tracker.trackerEntry.broadcast(new PacketPlayOutSpawnEntityLiving(id + 30000, UUID.randomUUID(), 1, locX(), locY(), locZ(), 0, 0, 0, (byte) 0, (byte) 0, (byte) 0));
++            }
++            tracker.trackerEntry.broadcast(new PacketPlayOutEntityMetadata(id + 30000, Arrays.asList(DataWatcher.of(2, Optional.of(CraftChatMessage.fromStringOrNull(title)), DataWatcherRegistry.f), DataWatcher.of(3, true, DataWatcherRegistry.i), DataWatcher.of(5, true, DataWatcherRegistry.i))));
++        }
++        this.title = title;
++    }
+     // Nesaak end
+ 
+     public float getBukkitYaw() {
+diff --git a/src/main/java/net/minecraft/server/EntityTrackerEntry.java b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
+index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..01c44fc9b496ae1f746d12069f169c96cea00137 100644
+--- a/src/main/java/net/minecraft/server/EntityTrackerEntry.java
++++ b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
+@@ -131,7 +131,7 @@ public class EntityTrackerEntry {
+                 double vec3d_dz = this.tracker.locZ() - 2.44140625E-4D*(this.zLoc);
+                 boolean flag1 = (vec3d_dx * vec3d_dx + vec3d_dy * vec3d_dy + vec3d_dz * vec3d_dz) >= 7.62939453125E-6D;
+                 // Paper end - reduce allocation of Vec3D here
+-                Packet<?> packet1 = null;
++                CustomEntityPacket<?> packet1 = null;
+                 boolean flag2 = flag1 || this.tickCounter % 60 == 0;
+                 boolean flag3 = Math.abs(i - this.yRot) >= 1 || Math.abs(j - this.xRot) >= 1;
+ 
+@@ -195,7 +195,13 @@ public class EntityTrackerEntry {
+                                     teleportPacket = new PacketPlayOutEntityTeleport(this.tracker);
+                                 }
+                                 sendPlayerPacket(viewer.getKey(), teleportPacket);
++                                CustomEntityPacket clone = teleportPacket.clone();
++                                clone.setId(clone.getId() + 30000);
++                                sendPlayerPacket(viewer.getKey(), clone);
+                             } else {
++                                CustomEntityPacket clone = packet1.clone();
++                                clone.setId(clone.getId() + 30000);
++                                sendPlayerPacket(viewer.getKey(), clone);
+                                 sendPlayerPacket(viewer.getKey(), packet1);
+                             }
+                         }
+diff --git a/src/main/java/net/minecraft/server/PacketPlayOutEntity.java b/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
+index d3653373ffe1510e9691418e7855772d7456423d..1881d5d3600f06ccd259ae6712878f00fadcbd47 100644
+--- a/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
++++ b/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
+@@ -2,7 +2,7 @@ package net.minecraft.server;
+ 
+ import java.io.IOException;
+ 
+-public class PacketPlayOutEntity implements Packet<PacketListenerPlayOut> {
++public class PacketPlayOutEntity implements CustomEntityPacket<PacketListenerPlayOut> {
+ 
+     protected int entityId;
+     protected short xa;
+@@ -28,16 +28,19 @@ public class PacketPlayOutEntity implements Packet<PacketListenerPlayOut> {
+         this.entityId = i;
+     }
+ 
+-    public PacketPlayOutEntity clone() {
+-        return new PacketPlayOutEntity(entityId);
++    @Override
++    public void setId(int id) {
++        entityId = id;
+     }
+ 
+-    public int getEntityId() {
++    @Override
++    public int getId() {
+         return entityId;
+     }
+ 
+-    public void setEntityId(int entityId) {
+-        this.entityId = entityId;
++    @Override
++    public PacketPlayOutEntity clone() {
++        return new PacketPlayOutEntity(entityId);
+     }
+ 
+     public short getXa() {
+diff --git a/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java b/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java
+index f2e87336a3b5c888ec079da75ddc70859d6b31e9..3f91a4509a3cd1ab76d76f93d1408a1fc58817f2 100644
+--- a/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java
++++ b/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java
+@@ -2,51 +2,76 @@ package net.minecraft.server;
+ 
+ import java.io.IOException;
+ 
+-public class PacketPlayOutEntityTeleport implements Packet<PacketListenerPlayOut> {
++public class PacketPlayOutEntityTeleport implements CustomEntityPacket<PacketListenerPlayOut> {
+ 
+-    private int a;
+-    private double b;
+-    private double c;
+-    private double d;
+-    private byte e;
+-    private byte f;
+-    private boolean g;
++    private int id;
++    private double x;
++    private double y;
++    private double z;
++    private byte yaw;
++    private byte pitch;
++    private boolean onGround;
+ 
+     public PacketPlayOutEntityTeleport() {}
+ 
+     public PacketPlayOutEntityTeleport(Entity entity) {
+-        this.a = entity.getId();
+-        this.b = entity.locX();
+-        this.c = entity.locY();
+-        this.d = entity.locZ();
+-        this.e = (byte) ((int) (entity.yaw * 256.0F / 360.0F));
+-        this.f = (byte) ((int) (entity.pitch * 256.0F / 360.0F));
+-        this.g = entity.onGround;
++        this.id = entity.getId();
++        this.x = entity.locX();
++        this.y = entity.locY();
++        this.z = entity.locZ();
++        this.yaw = (byte) ((int) (entity.yaw * 256.0F / 360.0F));
++        this.pitch = (byte) ((int) (entity.pitch * 256.0F / 360.0F));
++        this.onGround = entity.onGround;
++    }
++
++    public PacketPlayOutEntityTeleport(int id, double x, double y, double z, byte yaw, byte pitch, boolean onGround) {
++        this.id = id;
++        this.x = x;
++        this.y = y;
++        this.z = z;
++        this.yaw = yaw;
++        this.pitch = pitch;
++        this.onGround = onGround;
+     }
+ 
+     @Override
+     public void a(PacketDataSerializer packetdataserializer) throws IOException {
+-        this.a = packetdataserializer.i();
+-        this.b = packetdataserializer.readDouble();
+-        this.c = packetdataserializer.readDouble();
+-        this.d = packetdataserializer.readDouble();
+-        this.e = packetdataserializer.readByte();
+-        this.f = packetdataserializer.readByte();
+-        this.g = packetdataserializer.readBoolean();
++        this.id = packetdataserializer.i();
++        this.x = packetdataserializer.readDouble();
++        this.y = packetdataserializer.readDouble();
++        this.z = packetdataserializer.readDouble();
++        this.yaw = packetdataserializer.readByte();
++        this.pitch = packetdataserializer.readByte();
++        this.onGround = packetdataserializer.readBoolean();
+     }
+ 
+     @Override
+     public void b(PacketDataSerializer packetdataserializer) throws IOException {
+-        packetdataserializer.d(this.a);
+-        packetdataserializer.writeDouble(this.b);
+-        packetdataserializer.writeDouble(this.c);
+-        packetdataserializer.writeDouble(this.d);
+-        packetdataserializer.writeByte(this.e);
+-        packetdataserializer.writeByte(this.f);
+-        packetdataserializer.writeBoolean(this.g);
++        packetdataserializer.d(this.id);
++        packetdataserializer.writeDouble(this.x);
++        packetdataserializer.writeDouble(this.y);
++        packetdataserializer.writeDouble(this.z);
++        packetdataserializer.writeByte(this.yaw);
++        packetdataserializer.writeByte(this.pitch);
++        packetdataserializer.writeBoolean(this.onGround);
+     }
+ 
+     public void a(PacketListenerPlayOut packetlistenerplayout) {
+         packetlistenerplayout.a(this);
+     }
++
++    @Override
++    public void setId(int id) {
++        this.id = id;
++    }
++
++    @Override
++    public int getId() {
++        return id;
++    }
++
++    @Override
++    public CustomEntityPacket clone() {
++        return new PacketPlayOutEntityTeleport(id, x, y, z, yaw, pitch, onGround);
++    }
+ }
