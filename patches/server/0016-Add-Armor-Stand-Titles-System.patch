@@ -4,21 +4,6 @@ Date: Sat, 27 Jun 2020 09:39:27 -0400
 Subject: [PATCH] Add Armor Stand Titles System
 
 
-diff --git a/src/main/java/net/minecraft/server/CustomEntityPacket.java b/src/main/java/net/minecraft/server/CustomEntityPacket.java
-new file mode 100644
-index 0000000000000000000000000000000000000000..924a2eb202c4f1b8daf1a1c7b5318ef733cb17f4
---- /dev/null
-+++ b/src/main/java/net/minecraft/server/CustomEntityPacket.java
-@@ -0,0 +1,9 @@
-+package net.minecraft.server;
-+
-+public interface CustomEntityPacket<T extends PacketListener> extends Packet<T> {
-+    CustomEntityPacket setId(int id);
-+
-+    int getId();
-+
-+    CustomEntityPacket clone();
-+}
 diff --git a/src/main/java/net/minecraft/server/Entity.java b/src/main/java/net/minecraft/server/Entity.java
 index 5a1f34930dd46cc2e4d35ab3e9b3a1a7585a01ae..7bbdb8d789a108c836bde2b702b02c501f0d0b55 100644
 --- a/src/main/java/net/minecraft/server/Entity.java
@@ -59,20 +44,43 @@ index 5a1f34930dd46cc2e4d35ab3e9b3a1a7585a01ae..7bbdb8d789a108c836bde2b702b02c50
      // Nesaak end
  
      public float getBukkitYaw() {
+diff --git a/src/main/java/net/minecraft/server/EntityPacket.java b/src/main/java/net/minecraft/server/EntityPacket.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..4a8b60d330de61a03e521aa38ba0a346757a45f3
+--- /dev/null
++++ b/src/main/java/net/minecraft/server/EntityPacket.java
+@@ -0,0 +1,9 @@
++package net.minecraft.server;
++
++public interface EntityPacket<T extends PacketListener> extends Packet<T> {
++    EntityPacket setId(int id);
++
++    int getId();
++
++    EntityPacket clone();
++}
 diff --git a/src/main/java/net/minecraft/server/EntityTrackerEntry.java b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
-index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..223e34926cd9abaa9ea208cd652903b7d60b4fc2 100644
+index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..60456663e5a44d9a8f332e70f558da38d170c24c 100644
 --- a/src/main/java/net/minecraft/server/EntityTrackerEntry.java
 +++ b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
-@@ -131,7 +131,7 @@ public class EntityTrackerEntry {
+@@ -2,7 +2,6 @@ package net.minecraft.server;
+ 
+ import java.util.Collection;
+ import java.util.Collections;
+-import java.util.HashSet;
+ import java.util.Iterator;
+ import java.util.List;
+ import java.util.Set;
+@@ -131,7 +130,7 @@ public class EntityTrackerEntry {
                  double vec3d_dz = this.tracker.locZ() - 2.44140625E-4D*(this.zLoc);
                  boolean flag1 = (vec3d_dx * vec3d_dx + vec3d_dy * vec3d_dy + vec3d_dz * vec3d_dz) >= 7.62939453125E-6D;
                  // Paper end - reduce allocation of Vec3D here
 -                Packet<?> packet1 = null;
-+                CustomEntityPacket<?> packet1 = null;
++                GroundPacket<?> packet1 = null;
                  boolean flag2 = flag1 || this.tickCounter % 60 == 0;
                  boolean flag3 = Math.abs(i - this.yRot) >= 1 || Math.abs(j - this.xRot) >= 1;
  
-@@ -177,7 +177,9 @@ public class EntityTrackerEntry {
+@@ -177,7 +176,9 @@ public class EntityTrackerEntry {
  
                      if (d0 > 1.0E-7D || d0 > 0.0D && vec3d1.g() == 0.0D) {
                          this.m = vec3d1;
@@ -83,7 +91,7 @@ index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..223e34926cd9abaa9ea208cd652903b7
                      }
                  }
  
-@@ -185,6 +187,7 @@ public class EntityTrackerEntry {
+@@ -185,6 +186,7 @@ public class EntityTrackerEntry {
                      // paper start
                      if (trackedPlayerMap == null || packet1 instanceof PacketPlayOutEntityTeleport) {
                          this.f.accept((packet1));
@@ -91,35 +99,35 @@ index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..223e34926cd9abaa9ea208cd652903b7
                      } else {
                          PacketPlayOutEntityTeleport teleportPacket = null;
  
-@@ -195,8 +198,16 @@ public class EntityTrackerEntry {
+@@ -195,8 +197,16 @@ public class EntityTrackerEntry {
                                      teleportPacket = new PacketPlayOutEntityTeleport(this.tracker);
                                  }
                                  sendPlayerPacket(viewer.getKey(), teleportPacket);
-+                                if (tracker.getTitle() != null) sendPlayerPacket(viewer.getKey(), teleportPacket.clone().setId(teleportPacket.getId() + 30000).setY(teleportPacket.getY() + tracker.titleHeight));
++                                if (tracker.getTitle() != null) sendPlayerPacket(viewer.getKey(), teleportPacket.clone().setId(teleportPacket.getId() + 30000).setY(teleportPacket.getY() + tracker.titleHeight).setOnGround(false));
                              } else {
                                  sendPlayerPacket(viewer.getKey(), packet1);
 +                                if (tracker.getTitle() != null) {
-+                                    if (packet1 instanceof PacketPlayOutEntityTeleport) {
-+                                        sendPlayerPacket(viewer.getKey(), ((PacketPlayOutEntityTeleport) packet1).clone().setId(packet1.getId() + 30000).setY(((PacketPlayOutEntityTeleport) packet1).getY() + tracker.titleHeight));
-+                                    } else {
-+                                        sendPlayerPacket(viewer.getKey(), packet1.clone().setId(packet1.getId() + 30000));
++                                    GroundPacket clone = packet1.clone().setId(packet1.getId() + 30000).setOnGround(false);
++                                    if (clone instanceof PacketPlayOutEntityTeleport) {
++                                        ((PacketPlayOutEntityTeleport) clone).setY(((PacketPlayOutEntityTeleport) clone).getY() + tracker.titleHeight);
 +                                    }
++                                    sendPlayerPacket(viewer.getKey(), clone);
 +                                }
                              }
                          }
                      }
-@@ -247,7 +258,9 @@ public class EntityTrackerEntry {
+@@ -247,7 +257,9 @@ public class EntityTrackerEntry {
              }
  
              if (!cancelled) {
 -                this.broadcastIncludingSelf(new PacketPlayOutEntityVelocity(this.tracker));
-+                CustomEntityPacket packet = new PacketPlayOutEntityVelocity(this.tracker);
++                EntityPacket packet = new PacketPlayOutEntityVelocity(this.tracker);
 +                this.broadcastIncludingSelf(packet);
 +                if (tracker.getTitle() != null) this.broadcastIncludingSelf(packet.clone().setId(packet.getId() + 30000));
              }
              // CraftBukkit end
              this.tracker.velocityChanged = false;
-@@ -316,7 +329,9 @@ public class EntityTrackerEntry {
+@@ -316,7 +328,9 @@ public class EntityTrackerEntry {
  
          this.m = this.tracker.getMot();
          if (flag && !(packet instanceof PacketPlayOutSpawnEntityLiving)) {
@@ -130,8 +138,24 @@ index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..223e34926cd9abaa9ea208cd652903b7
          }
  
          if (this.tracker instanceof EntityLiving) {
+diff --git a/src/main/java/net/minecraft/server/GroundPacket.java b/src/main/java/net/minecraft/server/GroundPacket.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..805236bc4ef114f4fae85ab916a122ec58751965
+--- /dev/null
++++ b/src/main/java/net/minecraft/server/GroundPacket.java
+@@ -0,0 +1,10 @@
++package net.minecraft.server;
++
++public interface GroundPacket<T extends PacketListener> extends EntityPacket<T> {
++
++    GroundPacket setOnGround(boolean onGround);
++
++    GroundPacket clone();
++
++    GroundPacket setId(int id);
++}
 diff --git a/src/main/java/net/minecraft/server/PacketPlayOutEntity.java b/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
-index d3653373ffe1510e9691418e7855772d7456423d..630a3ccb30322e2becf0b3c81f4a6b7e62b55ca2 100644
+index d3653373ffe1510e9691418e7855772d7456423d..5639db7be9ab4e8b62ef33e57ed31cd24e1f630b 100644
 --- a/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
 +++ b/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
 @@ -2,7 +2,7 @@ package net.minecraft.server;
@@ -139,11 +163,11 @@ index d3653373ffe1510e9691418e7855772d7456423d..630a3ccb30322e2becf0b3c81f4a6b7e
  import java.io.IOException;
  
 -public class PacketPlayOutEntity implements Packet<PacketListenerPlayOut> {
-+public class PacketPlayOutEntity implements CustomEntityPacket<PacketListenerPlayOut> {
++public class PacketPlayOutEntity implements GroundPacket<PacketListenerPlayOut> {
  
      protected int entityId;
      protected short xa;
-@@ -28,16 +28,20 @@ public class PacketPlayOutEntity implements Packet<PacketListenerPlayOut> {
+@@ -28,82 +28,47 @@ public class PacketPlayOutEntity implements Packet<PacketListenerPlayOut> {
          this.entityId = i;
      }
  
@@ -169,8 +193,76 @@ index d3653373ffe1510e9691418e7855772d7456423d..630a3ccb30322e2becf0b3c81f4a6b7e
      }
  
      public short getXa() {
+         return xa;
+     }
+ 
+-    public void setXa(short xa) {
+-        this.xa = xa;
+-    }
+-
+-    public short getYa() {
+-        return ya;
+-    }
+-
+-    public void setYa(short ya) {
+-        this.ya = ya;
+-    }
+-
+-    public short getZa() {
+-        return za;
+-    }
+-
+-    public void setZa(short za) {
+-        this.za = za;
+-    }
+-
+-    public byte getyRot() {
+-        return yRot;
+-    }
+-
+-    public void setyRot(byte yRot) {
+-        this.yRot = yRot;
+-    }
+-
+     public byte getzRot() {
+         return zRot;
+     }
+ 
+-    public void setzRot(byte zRot) {
+-        this.zRot = zRot;
+-    }
+-
+     public boolean isOnGround() {
+         return onGround;
+     }
+ 
+-    public void setOnGround(boolean onGround) {
++    public PacketPlayOutEntity setOnGround(boolean onGround) {
+         this.onGround = onGround;
++        return this;
+     }
+ 
+     public boolean isHasRot() {
+         return hasRot;
+     }
+ 
+-    public void setHasRot(boolean hasRot) {
+-        this.hasRot = hasRot;
+-    }
+-
+     public boolean isHasPos() {
+         return hasPos;
+     }
+ 
+-    public void setHasPos(boolean hasPos) {
+-        this.hasPos = hasPos;
+-    }
+-
+     @Override
+     public void a(PacketDataSerializer packetdataserializer) throws IOException {
+         this.entityId = packetdataserializer.i();
 diff --git a/src/main/java/net/minecraft/server/PacketPlayOutEntityMetadata.java b/src/main/java/net/minecraft/server/PacketPlayOutEntityMetadata.java
-index 19cf26694fea4756c49ffe50d0bb602081b11be4..9ebad06fa09865fca329789d5acd932f0916a192 100644
+index 19cf26694fea4756c49ffe50d0bb602081b11be4..6f112ba26b1c8fb679d896741fa0b0cf78a40ed2 100644
 --- a/src/main/java/net/minecraft/server/PacketPlayOutEntityMetadata.java
 +++ b/src/main/java/net/minecraft/server/PacketPlayOutEntityMetadata.java
 @@ -5,7 +5,7 @@ import com.google.common.collect.Lists;
@@ -178,7 +270,7 @@ index 19cf26694fea4756c49ffe50d0bb602081b11be4..9ebad06fa09865fca329789d5acd932f
  import java.util.List;
  
 -public class PacketPlayOutEntityMetadata implements Packet<PacketListenerPlayOut> {
-+public class PacketPlayOutEntityMetadata implements CustomEntityPacket<PacketListenerPlayOut> {
++public class PacketPlayOutEntityMetadata implements EntityPacket<PacketListenerPlayOut> {
  
      private int a;
      private List<DataWatcher.Item<?>> b;
@@ -189,7 +281,7 @@ index 19cf26694fea4756c49ffe50d0bb602081b11be4..9ebad06fa09865fca329789d5acd932f
 -    public PacketPlayOutEntityMetadata clone() {
 -        return new PacketPlayOutEntityMetadata(a, Lists.newArrayList(b));
 +    @Override
-+    public CustomEntityPacket setId(int id) {
++    public EntityPacket setId(int id) {
 +        this.a = id;
 +        return this;
      }
@@ -209,15 +301,15 @@ index 19cf26694fea4756c49ffe50d0bb602081b11be4..9ebad06fa09865fca329789d5acd932f
  
      public List<DataWatcher.Item<?>> getItems() {
 diff --git a/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java b/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java
-index f2e87336a3b5c888ec079da75ddc70859d6b31e9..28a970f7585496854b28601f3fef0fc79ac90063 100644
+index f2e87336a3b5c888ec079da75ddc70859d6b31e9..8134a247d4ae639ed388230aa176bf623155aeb5 100644
 --- a/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java
 +++ b/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java
-@@ -2,51 +2,86 @@ package net.minecraft.server;
+@@ -2,51 +2,111 @@ package net.minecraft.server;
  
  import java.io.IOException;
  
 -public class PacketPlayOutEntityTeleport implements Packet<PacketListenerPlayOut> {
-+public class PacketPlayOutEntityTeleport implements CustomEntityPacket<PacketListenerPlayOut> {
++public class PacketPlayOutEntityTeleport implements GroundPacket<PacketListenerPlayOut> {
  
 -    private int a;
 -    private double b;
@@ -303,8 +395,33 @@ index f2e87336a3b5c888ec079da75ddc70859d6b31e9..28a970f7585496854b28601f3fef0fc7
          packetlistenerplayout.a(this);
      }
 +
++    public double getX() {
++        return x;
++    }
++
 +    public double getY() {
 +        return y;
++    }
++
++    public double getZ() {
++        return z;
++    }
++
++    public byte getYaw() {
++        return yaw;
++    }
++
++    public byte getPitch() {
++        return pitch;
++    }
++
++    public boolean isOnGround() {
++        return onGround;
++    }
++
++    public PacketPlayOutEntityTeleport setOnGround(boolean onGround) {
++        this.onGround = onGround;
++        return this;
 +    }
 +
 +    public PacketPlayOutEntityTeleport setY(double y) {
@@ -329,7 +446,7 @@ index f2e87336a3b5c888ec079da75ddc70859d6b31e9..28a970f7585496854b28601f3fef0fc7
 +    }
  }
 diff --git a/src/main/java/net/minecraft/server/PacketPlayOutEntityVelocity.java b/src/main/java/net/minecraft/server/PacketPlayOutEntityVelocity.java
-index d77b83231668d4963d74c925463970a2aca111eb..640b4191345208cde1c9b0ab54ab3d6c6c7e6560 100644
+index d77b83231668d4963d74c925463970a2aca111eb..1090f53523ddbaa2b998c56140ddbd9a9df4ff88 100644
 --- a/src/main/java/net/minecraft/server/PacketPlayOutEntityVelocity.java
 +++ b/src/main/java/net/minecraft/server/PacketPlayOutEntityVelocity.java
 @@ -2,12 +2,12 @@ package net.minecraft.server;
@@ -337,7 +454,7 @@ index d77b83231668d4963d74c925463970a2aca111eb..640b4191345208cde1c9b0ab54ab3d6c
  import java.io.IOException;
  
 -public class PacketPlayOutEntityVelocity implements Packet<PacketListenerPlayOut> {
-+public class PacketPlayOutEntityVelocity implements CustomEntityPacket<PacketListenerPlayOut> {
++public class PacketPlayOutEntityVelocity implements EntityPacket<PacketListenerPlayOut> {
  
 -    private int a;
 -    private int b;
@@ -388,7 +505,7 @@ index d77b83231668d4963d74c925463970a2aca111eb..640b4191345208cde1c9b0ab54ab3d6c
 +    }
 +
 +    @Override
-+    public CustomEntityPacket clone() {
++    public EntityPacket clone() {
 +        return new PacketPlayOutEntityVelocity(id, x, y, z);
      }
  
