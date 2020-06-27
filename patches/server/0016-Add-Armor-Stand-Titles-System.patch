@@ -91,7 +91,7 @@ index c88177b77607519453bb349a8e960d22d73e9f8e..e8c8578efbddc099478686c3e03f0648
              this.removeQueue.add((Integer) entity.getId()); // CraftBukkit - decompile error
          }
 diff --git a/src/main/java/net/minecraft/server/EntityTrackerEntry.java b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
-index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..fe0a778d983c3a7b0a08d45d049232a7bf17500a 100644
+index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..4197eb8f277b3db8f77b5e5777f0b8280543b171 100644
 --- a/src/main/java/net/minecraft/server/EntityTrackerEntry.java
 +++ b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
 @@ -1,16 +1,19 @@
@@ -244,7 +244,7 @@ index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..fe0a778d983c3a7b0a08d45d049232a7
                      // paper start
                      if (trackedPlayerMap == null || packet1 instanceof PacketPlayOutEntityTeleport) {
                          this.f.accept((packet1));
-+                        if (tracker.getTitle() != null) this.f.accept((packet1.clone().setId(packet1.getId() + 30000).setOnGround(false)));
++                        if (tracker.getTitle() != null) this.f.accept(packet1.clone().setOnGround(false).setY(packet1.getY() + tracker.titleHeight));
                      } else {
                          PacketPlayOutEntityTeleport teleportPacket = null;
 -
@@ -447,13 +447,19 @@ index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..fe0a778d983c3a7b0a08d45d049232a7
  
 diff --git a/src/main/java/net/minecraft/server/GroundPacket.java b/src/main/java/net/minecraft/server/GroundPacket.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..805236bc4ef114f4fae85ab916a122ec58751965
+index 0000000000000000000000000000000000000000..83d749a41250fd02b4684f63615fe58d6a82d783
 --- /dev/null
 +++ b/src/main/java/net/minecraft/server/GroundPacket.java
-@@ -0,0 +1,10 @@
+@@ -0,0 +1,16 @@
 +package net.minecraft.server;
 +
 +public interface GroundPacket<T extends PacketListener> extends EntityPacket<T> {
++
++    double getY();
++
++    GroundPacket setY(double y);
++
++    boolean getOnGround();
 +
 +    GroundPacket setOnGround(boolean onGround);
 +
@@ -462,7 +468,7 @@ index 0000000000000000000000000000000000000000..805236bc4ef114f4fae85ab916a122ec
 +    GroundPacket setId(int id);
 +}
 diff --git a/src/main/java/net/minecraft/server/PacketPlayOutEntity.java b/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
-index d3653373ffe1510e9691418e7855772d7456423d..5639db7be9ab4e8b62ef33e57ed31cd24e1f630b 100644
+index d3653373ffe1510e9691418e7855772d7456423d..e940f132c79ac6f89577975a74b1eb42344ec711 100644
 --- a/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
 +++ b/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
 @@ -2,7 +2,7 @@ package net.minecraft.server;
@@ -474,7 +480,7 @@ index d3653373ffe1510e9691418e7855772d7456423d..5639db7be9ab4e8b62ef33e57ed31cd2
  
      protected int entityId;
      protected short xa;
-@@ -28,82 +28,47 @@ public class PacketPlayOutEntity implements Packet<PacketListenerPlayOut> {
+@@ -28,82 +28,58 @@ public class PacketPlayOutEntity implements Packet<PacketListenerPlayOut> {
          this.entityId = i;
      }
  
@@ -537,13 +543,24 @@ index d3653373ffe1510e9691418e7855772d7456423d..5639db7be9ab4e8b62ef33e57ed31cd2
  
 -    public void setzRot(byte zRot) {
 -        this.zRot = zRot;
--    }
--
-     public boolean isOnGround() {
-         return onGround;
++    @Override
++    public double getY() {
++        return 0;
+     }
+ 
+-    public boolean isOnGround() {
+-        return onGround;
++    @Override
++    public PacketPlayOutEntity setY(double y) {
++        return this;
      }
  
 -    public void setOnGround(boolean onGround) {
++    @Override
++    public boolean getOnGround() {
++        return false;
++    }
++
 +    public PacketPlayOutEntity setOnGround(boolean onGround) {
          this.onGround = onGround;
 +        return this;
@@ -608,10 +625,10 @@ index 19cf26694fea4756c49ffe50d0bb602081b11be4..6f112ba26b1c8fb679d896741fa0b0cf
  
      public List<DataWatcher.Item<?>> getItems() {
 diff --git a/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java b/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java
-index f2e87336a3b5c888ec079da75ddc70859d6b31e9..8134a247d4ae639ed388230aa176bf623155aeb5 100644
+index f2e87336a3b5c888ec079da75ddc70859d6b31e9..3fadc44f8ba46bee5a9361ea721f9912072ec9fb 100644
 --- a/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java
 +++ b/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java
-@@ -2,51 +2,111 @@ package net.minecraft.server;
+@@ -2,51 +2,116 @@ package net.minecraft.server;
  
  import java.io.IOException;
  
@@ -734,6 +751,11 @@ index f2e87336a3b5c888ec079da75ddc70859d6b31e9..8134a247d4ae639ed388230aa176bf62
 +    public PacketPlayOutEntityTeleport setY(double y) {
 +        this.y = y;
 +        return this;
++    }
++
++    @Override
++    public boolean getOnGround() {
++        return onGround;
 +    }
 +
 +    @Override
