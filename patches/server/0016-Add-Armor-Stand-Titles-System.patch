@@ -20,7 +20,7 @@ index 0000000000000000000000000000000000000000..924a2eb202c4f1b8daf1a1c7b5318ef7
 +    CustomEntityPacket clone();
 +}
 diff --git a/src/main/java/net/minecraft/server/Entity.java b/src/main/java/net/minecraft/server/Entity.java
-index 5a1f34930dd46cc2e4d35ab3e9b3a1a7585a01ae..dbc2df8b647670a31fb634c15d3bdeb68630ff58 100644
+index 5a1f34930dd46cc2e4d35ab3e9b3a1a7585a01ae..4e3c6167d38a0a2cb2a1cb41f68995685e485762 100644
 --- a/src/main/java/net/minecraft/server/Entity.java
 +++ b/src/main/java/net/minecraft/server/Entity.java
 @@ -26,6 +26,7 @@ import org.bukkit.Location;
@@ -31,7 +31,7 @@ index 5a1f34930dd46cc2e4d35ab3e9b3a1a7585a01ae..dbc2df8b647670a31fb634c15d3bdeb6
  import org.bukkit.entity.Hanging;
  import org.bukkit.entity.LivingEntity;
  import org.bukkit.entity.Vehicle;
-@@ -212,6 +213,22 @@ public abstract class Entity implements INamableTileEntity, ICommandListener, Ke
+@@ -212,6 +213,26 @@ public abstract class Entity implements INamableTileEntity, ICommandListener, Ke
              }, trackedPlayer);
          }
      }
@@ -51,11 +51,15 @@ index 5a1f34930dd46cc2e4d35ab3e9b3a1a7585a01ae..dbc2df8b647670a31fb634c15d3bdeb6
 +        }
 +        this.title = title;
 +    }
++
++    public String getTitle() {
++        return title;
++    }
      // Nesaak end
  
      public float getBukkitYaw() {
 diff --git a/src/main/java/net/minecraft/server/EntityTrackerEntry.java b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
-index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..483203299775c5603787350551a334ce177cc126 100644
+index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..02e55ed215d4fee90fb3c92249aaf09fef11c350 100644
 --- a/src/main/java/net/minecraft/server/EntityTrackerEntry.java
 +++ b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
 @@ -131,7 +131,7 @@ public class EntityTrackerEntry {
@@ -67,28 +71,58 @@ index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..483203299775c5603787350551a334ce
                  boolean flag2 = flag1 || this.tickCounter % 60 == 0;
                  boolean flag3 = Math.abs(i - this.yRot) >= 1 || Math.abs(j - this.xRot) >= 1;
  
-@@ -195,8 +195,10 @@ public class EntityTrackerEntry {
+@@ -177,7 +177,9 @@ public class EntityTrackerEntry {
+ 
+                     if (d0 > 1.0E-7D || d0 > 0.0D && vec3d1.g() == 0.0D) {
+                         this.m = vec3d1;
+-                        this.f.accept(new PacketPlayOutEntityVelocity(this.tracker.getId(), this.m));
++                        PacketPlayOutEntityVelocity vel = new PacketPlayOutEntityVelocity(this.tracker.getId(), this.m);
++                        this.f.accept(vel);
++                        if (tracker.getTitle() != null) this.f.accept(vel.clone().setId(vel.getId() + 30000));
+                     }
+                 }
+ 
+@@ -185,6 +187,7 @@ public class EntityTrackerEntry {
+                     // paper start
+                     if (trackedPlayerMap == null || packet1 instanceof PacketPlayOutEntityTeleport) {
+                         this.f.accept((packet1));
++                        if (tracker.getTitle() != null) this.f.accept((packet1.clone().setId(packet1.getId() + 30000)));
+                     } else {
+                         PacketPlayOutEntityTeleport teleportPacket = null;
+ 
+@@ -195,8 +198,10 @@ public class EntityTrackerEntry {
                                      teleportPacket = new PacketPlayOutEntityTeleport(this.tracker);
                                  }
                                  sendPlayerPacket(viewer.getKey(), teleportPacket);
-+                                sendPlayerPacket(viewer.getKey(), teleportPacket.clone().setId(teleportPacket.getId() + 30000));
++                                if (tracker.getTitle() != null) sendPlayerPacket(viewer.getKey(), teleportPacket.clone().setId(teleportPacket.getId() + 30000));
                              } else {
                                  sendPlayerPacket(viewer.getKey(), packet1);
-+                                sendPlayerPacket(viewer.getKey(), packet1.clone().setId(packet1.getId() + 30000));
++                                if (tracker.getTitle() != null) sendPlayerPacket(viewer.getKey(), packet1.clone().setId(packet1.getId() + 30000));
                              }
                          }
                      }
-@@ -247,7 +249,9 @@ public class EntityTrackerEntry {
+@@ -247,7 +252,9 @@ public class EntityTrackerEntry {
              }
  
              if (!cancelled) {
 -                this.broadcastIncludingSelf(new PacketPlayOutEntityVelocity(this.tracker));
 +                CustomEntityPacket packet = new PacketPlayOutEntityVelocity(this.tracker);
 +                this.broadcastIncludingSelf(packet);
-+                this.broadcastIncludingSelf(packet.clone().setId(packet.getId() + 30000));
++                if (tracker.getTitle() != null) this.broadcastIncludingSelf(packet.clone().setId(packet.getId() + 30000));
              }
              // CraftBukkit end
              this.tracker.velocityChanged = false;
+@@ -316,7 +323,9 @@ public class EntityTrackerEntry {
+ 
+         this.m = this.tracker.getMot();
+         if (flag && !(packet instanceof PacketPlayOutSpawnEntityLiving)) {
+-            consumer.accept(new PacketPlayOutEntityVelocity(this.tracker.getId(), this.m));
++            PacketPlayOutEntityVelocity vel = new PacketPlayOutEntityVelocity(this.tracker.getId(), this.m);
++            consumer.accept(vel);
++            if (tracker.getTitle() != null) consumer.accept(vel.clone().setId(vel.getId() + 30000));
+         }
+ 
+         if (this.tracker instanceof EntityLiving) {
 diff --git a/src/main/java/net/minecraft/server/PacketPlayOutEntity.java b/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
 index d3653373ffe1510e9691418e7855772d7456423d..630a3ccb30322e2becf0b3c81f4a6b7e62b55ca2 100644
 --- a/src/main/java/net/minecraft/server/PacketPlayOutEntity.java
