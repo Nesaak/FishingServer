@@ -20,7 +20,7 @@ index 0000000000000000000000000000000000000000..924a2eb202c4f1b8daf1a1c7b5318ef7
 +    CustomEntityPacket clone();
 +}
 diff --git a/src/main/java/net/minecraft/server/Entity.java b/src/main/java/net/minecraft/server/Entity.java
-index 5a1f34930dd46cc2e4d35ab3e9b3a1a7585a01ae..4e3c6167d38a0a2cb2a1cb41f68995685e485762 100644
+index 5a1f34930dd46cc2e4d35ab3e9b3a1a7585a01ae..7bbdb8d789a108c836bde2b702b02c501f0d0b55 100644
 --- a/src/main/java/net/minecraft/server/Entity.java
 +++ b/src/main/java/net/minecraft/server/Entity.java
 @@ -26,6 +26,7 @@ import org.bukkit.Location;
@@ -31,11 +31,12 @@ index 5a1f34930dd46cc2e4d35ab3e9b3a1a7585a01ae..4e3c6167d38a0a2cb2a1cb41f6899568
  import org.bukkit.entity.Hanging;
  import org.bukkit.entity.LivingEntity;
  import org.bukkit.entity.Vehicle;
-@@ -212,6 +213,26 @@ public abstract class Entity implements INamableTileEntity, ICommandListener, Ke
+@@ -212,6 +213,27 @@ public abstract class Entity implements INamableTileEntity, ICommandListener, Ke
              }, trackedPlayer);
          }
      }
 +    private String title;
++    public double titleHeight;
 +    public void setTitle(String title) {
 +        if (title == null) {
 +            if (this.title != null) tracker.trackerEntry.broadcast(new PacketPlayOutEntityDestroy(id + 30000));
@@ -45,7 +46,7 @@ index 5a1f34930dd46cc2e4d35ab3e9b3a1a7585a01ae..4e3c6167d38a0a2cb2a1cb41f6899568
 +                double d1 = MathHelper.a(vec3d.x, -3.9D, 3.9D);
 +                double d2 = MathHelper.a(vec3d.y, -3.9D, 3.9D);
 +                double d3 = MathHelper.a(vec3d.z, -3.9D, 3.9D);
-+                tracker.trackerEntry.broadcast(new PacketPlayOutSpawnEntityLiving(id + 30000, UUID.randomUUID(), 1, locX(), locY() + 0.5, locZ(), (int) (d1 * 8000.0D), (int) (d2 * 8000.0D), (int) (d3 * 8000.0D), (byte) 0, (byte) 0, (byte) 0));
++                tracker.trackerEntry.broadcast(new PacketPlayOutSpawnEntityLiving(id + 30000, UUID.randomUUID(), 1, locX(), locY() + titleHeight, locZ(), (int) (d1 * 8000.0D), (int) (d2 * 8000.0D), (int) (d3 * 8000.0D), (byte) 0, (byte) 0, (byte) 0));
 +            }
 +            tracker.trackerEntry.broadcast(new PacketPlayOutEntityMetadata(id + 30000, Arrays.asList(DataWatcher.of(0, (byte) 32, DataWatcherRegistry.a), DataWatcher.of(2, Optional.of(CraftChatMessage.fromStringOrNull(title)), DataWatcherRegistry.f), DataWatcher.of(3, true, DataWatcherRegistry.i), DataWatcher.of(5, true, DataWatcherRegistry.i))));
 +        }
@@ -59,7 +60,7 @@ index 5a1f34930dd46cc2e4d35ab3e9b3a1a7585a01ae..4e3c6167d38a0a2cb2a1cb41f6899568
  
      public float getBukkitYaw() {
 diff --git a/src/main/java/net/minecraft/server/EntityTrackerEntry.java b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
-index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..02e55ed215d4fee90fb3c92249aaf09fef11c350 100644
+index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..223e34926cd9abaa9ea208cd652903b7d60b4fc2 100644
 --- a/src/main/java/net/minecraft/server/EntityTrackerEntry.java
 +++ b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
 @@ -131,7 +131,7 @@ public class EntityTrackerEntry {
@@ -90,18 +91,24 @@ index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..02e55ed215d4fee90fb3c92249aaf09f
                      } else {
                          PacketPlayOutEntityTeleport teleportPacket = null;
  
-@@ -195,8 +198,10 @@ public class EntityTrackerEntry {
+@@ -195,8 +198,16 @@ public class EntityTrackerEntry {
                                      teleportPacket = new PacketPlayOutEntityTeleport(this.tracker);
                                  }
                                  sendPlayerPacket(viewer.getKey(), teleportPacket);
-+                                if (tracker.getTitle() != null) sendPlayerPacket(viewer.getKey(), teleportPacket.clone().setId(teleportPacket.getId() + 30000));
++                                if (tracker.getTitle() != null) sendPlayerPacket(viewer.getKey(), teleportPacket.clone().setId(teleportPacket.getId() + 30000).setY(teleportPacket.getY() + tracker.titleHeight));
                              } else {
                                  sendPlayerPacket(viewer.getKey(), packet1);
-+                                if (tracker.getTitle() != null) sendPlayerPacket(viewer.getKey(), packet1.clone().setId(packet1.getId() + 30000));
++                                if (tracker.getTitle() != null) {
++                                    if (packet1 instanceof PacketPlayOutEntityTeleport) {
++                                        sendPlayerPacket(viewer.getKey(), ((PacketPlayOutEntityTeleport) packet1).clone().setId(packet1.getId() + 30000).setY(((PacketPlayOutEntityTeleport) packet1).getY() + tracker.titleHeight));
++                                    } else {
++                                        sendPlayerPacket(viewer.getKey(), packet1.clone().setId(packet1.getId() + 30000));
++                                    }
++                                }
                              }
                          }
                      }
-@@ -247,7 +252,9 @@ public class EntityTrackerEntry {
+@@ -247,7 +258,9 @@ public class EntityTrackerEntry {
              }
  
              if (!cancelled) {
@@ -112,7 +119,7 @@ index 62353aa33c8f2ac906cb97a7bf1d57f667defccb..02e55ed215d4fee90fb3c92249aaf09f
              }
              // CraftBukkit end
              this.tracker.velocityChanged = false;
-@@ -316,7 +323,9 @@ public class EntityTrackerEntry {
+@@ -316,7 +329,9 @@ public class EntityTrackerEntry {
  
          this.m = this.tracker.getMot();
          if (flag && !(packet instanceof PacketPlayOutSpawnEntityLiving)) {
@@ -202,10 +209,10 @@ index 19cf26694fea4756c49ffe50d0bb602081b11be4..9ebad06fa09865fca329789d5acd932f
  
      public List<DataWatcher.Item<?>> getItems() {
 diff --git a/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java b/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java
-index f2e87336a3b5c888ec079da75ddc70859d6b31e9..3b54f752ddf81d589609ff7e6de40a8b0016c3b7 100644
+index f2e87336a3b5c888ec079da75ddc70859d6b31e9..28a970f7585496854b28601f3fef0fc79ac90063 100644
 --- a/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java
 +++ b/src/main/java/net/minecraft/server/PacketPlayOutEntityTeleport.java
-@@ -2,51 +2,77 @@ package net.minecraft.server;
+@@ -2,51 +2,86 @@ package net.minecraft.server;
  
  import java.io.IOException;
  
@@ -296,6 +303,15 @@ index f2e87336a3b5c888ec079da75ddc70859d6b31e9..3b54f752ddf81d589609ff7e6de40a8b
          packetlistenerplayout.a(this);
      }
 +
++    public double getY() {
++        return y;
++    }
++
++    public PacketPlayOutEntityTeleport setY(double y) {
++        this.y = y;
++        return this;
++    }
++
 +    @Override
 +    public PacketPlayOutEntityTeleport setId(int id) {
 +        this.id = id;
@@ -308,7 +324,7 @@ index f2e87336a3b5c888ec079da75ddc70859d6b31e9..3b54f752ddf81d589609ff7e6de40a8b
 +    }
 +
 +    @Override
-+    public CustomEntityPacket clone() {
++    public PacketPlayOutEntityTeleport clone() {
 +        return new PacketPlayOutEntityTeleport(id, x, y, z, yaw, pitch, onGround);
 +    }
  }
