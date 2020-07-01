@@ -1,0 +1,185 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Nesaak <52047222+Nesaak@users.noreply.github.com>
+Date: Tue, 30 Jun 2020 21:47:49 -0400
+Subject: [PATCH] Add EntityMetadata Helper
+
+
+diff --git a/src/main/java/net/minecraft/server/EntityMetadata.java b/src/main/java/net/minecraft/server/EntityMetadata.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..08db15adf1cbb4b7f808274ad1f08bdbaa66dced
+--- /dev/null
++++ b/src/main/java/net/minecraft/server/EntityMetadata.java
+@@ -0,0 +1,173 @@
++package net.minecraft.server;
++
++import org.bukkit.craftbukkit.util.CraftChatMessage;
++
++import java.util.ArrayList;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.Optional;
++import java.util.OptionalInt;
++import java.util.UUID;
++
++public class EntityMetadata {
++
++    private Map<Integer, DataWatcher.Item<?>> items = new HashMap<>();
++
++
++    // Type Setters
++
++    private EntityMetadata set(int id, DataWatcher.Item<?> item) {
++        items.put(id, item);
++        return this;
++    }
++
++    public EntityMetadata setByte(int id, byte val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.a));
++    }
++
++    public EntityMetadata setBoolean(int id, boolean val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.i));
++    }
++
++    public EntityMetadata setInteger(int id, int val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.b));
++    }
++
++    public EntityMetadata setOptionalInteger(int id, OptionalInt val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.r));
++    }
++
++    public EntityMetadata setFloat(int id, float val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.c));
++    }
++
++    public EntityMetadata setString(int id, String val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.d));
++    }
++
++    public EntityMetadata setComponent(int id, IChatBaseComponent val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.e));
++    }
++
++    public EntityMetadata setOptionalComponent(int id, Optional<IChatBaseComponent> val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.f));
++    }
++
++    public EntityMetadata setItemStack(int id, ItemStack val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.g));
++    }
++
++    public EntityMetadata setVector(int id, Vector3f val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.k));
++    }
++
++    public EntityMetadata setPosition(int id, BlockPosition val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.l));
++    }
++
++    public EntityMetadata setOptionalPosition(int id, Optional<BlockPosition> val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.m));
++    }
++
++    public EntityMetadata setDirection(int id, EnumDirection val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.n));
++    }
++
++    public EntityMetadata setOptionalUUID(int id, Optional<UUID> val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.o));
++    }
++
++    public EntityMetadata setOptionalBlockData(int id, Optional<IBlockData> val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.h));
++    }
++
++    public EntityMetadata setNBT(int id, NBTTagCompound val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.p));
++    }
++
++    public EntityMetadata setParticle(int id, ParticleParam val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.j));
++    }
++
++    public EntityMetadata setVillagerData(int id, VillagerData val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.q));
++    }
++
++    public EntityMetadata setEntityPose(int id, EntityPose val) {
++        return set(id, DataWatcher.of(id, val, DataWatcherRegistry.s));
++    }
++
++    // Default Entity Metadata
++
++    private EntityMetadata setBitMask(byte bit, boolean shift) {
++        byte mask = 0;
++        DataWatcher.Item<?> item = items.get(0);
++        if (item != null) {
++            mask = ((DataWatcher.Item<Byte>) item).getValue();
++        }
++        if (shift) mask |= bit;
++        else mask &= ~bit;
++        setByte(0, mask);
++        return this;
++    }
++
++    public EntityMetadata setOnFire(boolean bool) {
++        return setBitMask((byte) 1, bool);
++    }
++
++    public EntityMetadata setCrouched(boolean bool) {
++        return setBitMask((byte) 2, bool);
++    }
++
++
++    public EntityMetadata setSprinting(boolean bool) {
++        return setBitMask((byte) 8, bool);
++    }
++
++    public EntityMetadata setSwimming(boolean bool) {
++        return setBitMask((byte) 16, bool);
++    }
++
++    public EntityMetadata setInvisible(boolean bool) {
++        return setBitMask((byte) 32, bool);
++    }
++
++    public EntityMetadata setGlowing(boolean bool) {
++        return setBitMask((byte) 64, bool);
++    }
++
++    public EntityMetadata setFlying(boolean bool) {
++        return setBitMask((byte) 128, bool);
++    }
++
++    public EntityMetadata setCustomName(String name) {
++        return setOptionalComponent(2, Optional.of(CraftChatMessage.wrapOrNull(name)));
++    }
++
++    public EntityMetadata setCustomNameVisible(boolean bool) {
++        return setBoolean(3, bool);
++    }
++
++    public EntityMetadata setSilent(boolean bool) {
++        return setBoolean(4, bool);
++    }
++
++    public EntityMetadata setGravity(boolean bool) {
++        return setBoolean(5, bool);
++    }
++
++    public EntityMetadata setPose(EntityPose pose) {
++        return setEntityPose(6, pose);
++    }
++
++    // Conversions
++
++    public List<DataWatcher.Item<?>> toItems() {
++        return new ArrayList(items.values());
++    }
++
++    public PacketPlayOutEntityMetadata getPacket(int id) {
++        return new PacketPlayOutEntityMetadata(id, toItems());
++    }
++}
