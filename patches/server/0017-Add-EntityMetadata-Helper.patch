@@ -4,6 +4,38 @@ Date: Tue, 30 Jun 2020 21:47:49 -0400
 Subject: [PATCH] Add EntityMetadata Helper
 
 
+diff --git a/src/main/java/net/minecraft/server/Entity.java b/src/main/java/net/minecraft/server/Entity.java
+index e88e66a2faca8da4edd9abad2d5c93cee2ca5028..686cb7499c4149605852ef9cfa1b2d46e58c9327 100644
+--- a/src/main/java/net/minecraft/server/Entity.java
++++ b/src/main/java/net/minecraft/server/Entity.java
+@@ -213,20 +213,24 @@ public abstract class Entity implements INamableTileEntity, ICommandListener, Ke
+             }, trackedPlayer);
+         }
+     }
++
++    // Title system
++
++    public static int TITLE_INT = 300000;
+     private String title;
+     public double titleHeight;
+     public void setTitle(String title) {
+         if (title == null) {
+-            if (this.title != null) tracker.trackerEntry.broadcast(new PacketPlayOutEntityDestroy(id + EntityTrackerEntry.TITLE_INT));
++            if (this.title != null) tracker.trackerEntry.broadcast(new PacketPlayOutEntityDestroy(id + Entity.TITLE_INT));
+         } else {
+             if (this.title == null) {
+                 Vec3D vec3d = getMot();
+                 double d1 = MathHelper.a(vec3d.x, -3.9D, 3.9D);
+                 double d2 = MathHelper.a(vec3d.y, -3.9D, 3.9D);
+                 double d3 = MathHelper.a(vec3d.z, -3.9D, 3.9D);
+-                tracker.trackerEntry.broadcast(new PacketPlayOutSpawnEntityLiving(id + EntityTrackerEntry.TITLE_INT, UUID.randomUUID(), 1, locX(), locY() + titleHeight, locZ(), (int) (d1 * 8000.0D), (int) (d2 * 8000.0D), (int) (d3 * 8000.0D), (byte) 0, (byte) 0, (byte) 0));
++                tracker.trackerEntry.broadcast(new PacketPlayOutSpawnEntityLiving(id + Entity.TITLE_INT, UUID.randomUUID(), 1, locX(), locY() + titleHeight, locZ(), (int) (d1 * 8000.0D), (int) (d2 * 8000.0D), (int) (d3 * 8000.0D), (byte) 0, (byte) 0, (byte) 0));
+             }
+-            tracker.trackerEntry.broadcast(new PacketPlayOutEntityMetadata(id + EntityTrackerEntry.TITLE_INT, Arrays.asList(DataWatcher.of(0, (byte) 32, DataWatcherRegistry.a), DataWatcher.of(2, Optional.of(CraftChatMessage.fromStringOrNull(title)), DataWatcherRegistry.f), DataWatcher.of(3, true, DataWatcherRegistry.i), DataWatcher.of(5, true, DataWatcherRegistry.i))));
++            tracker.trackerEntry.broadcast(new EntityMetadata().setCustomName(title).setCustomNameVisible(true).setInvisible(true).setGravity(false).getPacket(id + Entity.TITLE_INT));
+         }
+         this.title = title;
+     }
 diff --git a/src/main/java/net/minecraft/server/EntityMetadata.java b/src/main/java/net/minecraft/server/EntityMetadata.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..08db15adf1cbb4b7f808274ad1f08bdbaa66dced
@@ -183,3 +215,97 @@ index 0000000000000000000000000000000000000000..08db15adf1cbb4b7f808274ad1f08bdb
 +        return new PacketPlayOutEntityMetadata(id, toItems());
 +    }
 +}
+diff --git a/src/main/java/net/minecraft/server/EntityPlayer.java b/src/main/java/net/minecraft/server/EntityPlayer.java
+index b13d058802e42cb2b92b835ef5744515fbcf76f8..85fd69e2f13886d82b3aceed2065bf92c68af1b2 100644
+--- a/src/main/java/net/minecraft/server/EntityPlayer.java
++++ b/src/main/java/net/minecraft/server/EntityPlayer.java
+@@ -417,7 +417,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
+             Integer integer;
+             while (j < i && (integer = this.removeQueue.poll()) != null) {
+                 aint[j++] = integer;
+-                aint[j++] = integer + EntityTrackerEntry.TITLE_INT;
++                aint[j++] = integer + Entity.TITLE_INT;
+             }
+             // Paper end
+ 
+@@ -1646,7 +1646,7 @@ public class EntityPlayer extends EntityHuman implements ICrafting {
+     public void c(Entity entity) {
+         if (entity instanceof EntityHuman) {
+             this.playerConnection.sendPacket(new PacketPlayOutEntityDestroy(new int[]{entity.getId()}));
+-            this.playerConnection.sendPacket(new PacketPlayOutEntityDestroy(new int[]{entity.getId() + EntityTrackerEntry.TITLE_INT}));
++            this.playerConnection.sendPacket(new PacketPlayOutEntityDestroy(new int[]{entity.getId() + Entity.TITLE_INT}));
+         } else {
+             this.removeQueue.add((Integer) entity.getId()); // CraftBukkit - decompile error
+         }
+diff --git a/src/main/java/net/minecraft/server/EntityTrackerEntry.java b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
+index 007712689d509df133198cbd80cdac0d9859aab5..1e45c0ff4f81dc01e466f46d9cf56643c32b923c 100644
+--- a/src/main/java/net/minecraft/server/EntityTrackerEntry.java
++++ b/src/main/java/net/minecraft/server/EntityTrackerEntry.java
+@@ -20,8 +20,6 @@ import org.bukkit.event.player.PlayerVelocityEvent;
+ 
+ public class EntityTrackerEntry {
+ 
+-    public static int TITLE_INT = 300000;
+-
+     private static final Logger LOGGER = LogManager.getLogger();
+     private final WorldServer b;
+     private final Entity tracker;
+@@ -171,14 +169,14 @@ public class EntityTrackerEntry {
+                         this.m = vec3d1;
+                         PacketPlayOutEntityVelocity vel = new PacketPlayOutEntityVelocity(this.tracker.getId(), this.m);
+                         this.f.accept(vel);
+-                        if (tracker.getTitle() != null) this.f.accept(vel.clone().setId(vel.getId() + EntityTrackerEntry.TITLE_INT));
++                        if (tracker.getTitle() != null) this.f.accept(vel.clone().setId(vel.getId() + Entity.TITLE_INT));
+                     }
+                 }
+                 if (packet1 != null) {
+                     // paper start
+                     if (trackedPlayerMap == null || packet1 instanceof PacketPlayOutEntityTeleport) {
+                         this.f.accept((packet1));
+-                        if (tracker.getTitle() != null) this.f.accept(packet1.clone().setId(packet1.getId() + EntityTrackerEntry.TITLE_INT).setOnGround(false).setY(packet1.getY() + tracker.titleHeight));
++                        if (tracker.getTitle() != null) this.f.accept(packet1.clone().setId(packet1.getId() + Entity.TITLE_INT).setOnGround(false).setY(packet1.getY() + tracker.titleHeight));
+                     } else {
+                         PacketPlayOutEntityTeleport teleportPacket = null;
+                         for (java.util.Map.Entry<EntityPlayer, Boolean> viewer : trackedPlayerMap.entrySet()) {
+@@ -188,10 +186,10 @@ public class EntityTrackerEntry {
+                                     teleportPacket = new PacketPlayOutEntityTeleport(this.tracker);
+                                 }
+                                 sendPlayerPacket(viewer.getKey(), teleportPacket);
+-                                if (tracker.getTitle() != null) sendPlayerPacket(viewer.getKey(), teleportPacket.clone().setId(teleportPacket.getId() + EntityTrackerEntry.TITLE_INT).setY(teleportPacket.getY() + tracker.titleHeight).setOnGround(false));
++                                if (tracker.getTitle() != null) sendPlayerPacket(viewer.getKey(), teleportPacket.clone().setId(teleportPacket.getId() + Entity.TITLE_INT).setY(teleportPacket.getY() + tracker.titleHeight).setOnGround(false));
+                             } else {
+                                 sendPlayerPacket(viewer.getKey(), packet1);
+-                                if (tracker.getTitle() != null) sendPlayerPacket(viewer.getKey(), packet1.clone().setId(packet1.getId() + EntityTrackerEntry.TITLE_INT).setOnGround(false));
++                                if (tracker.getTitle() != null) sendPlayerPacket(viewer.getKey(), packet1.clone().setId(packet1.getId() + Entity.TITLE_INT).setOnGround(false));
+                             }
+                         }
+                     }
+@@ -235,7 +233,7 @@ public class EntityTrackerEntry {
+             if (!cancelled) {
+                 EntityPacket packet = new PacketPlayOutEntityVelocity(this.tracker);
+                 this.broadcastIncludingSelf(packet);
+-                if (tracker.getTitle() != null) this.broadcastIncludingSelf(packet.clone().setId(packet.getId() + EntityTrackerEntry.TITLE_INT));
++                if (tracker.getTitle() != null) this.broadcastIncludingSelf(packet.clone().setId(packet.getId() + Entity.TITLE_INT));
+             }
+             // CraftBukkit end
+             this.tracker.velocityChanged = false;
+@@ -276,8 +274,8 @@ public class EntityTrackerEntry {
+             double d1 = MathHelper.a(vec3d.x, -3.9D, 3.9D);
+             double d2 = MathHelper.a(vec3d.y, -3.9D, 3.9D);
+             double d3 = MathHelper.a(vec3d.z, -3.9D, 3.9D);
+-            consumer.accept(new PacketPlayOutSpawnEntityLiving(tracker.getId() + EntityTrackerEntry.TITLE_INT, UUID.randomUUID(), 1, tracker.locX(), tracker.locY() + tracker.titleHeight, tracker.locZ(), (int) (d1 * 8000.0D), (int) (d2 * 8000.0D), (int) (d3 * 8000.0D), (byte) 0, (byte) 0, (byte) 0));
+-            consumer.accept(new PacketPlayOutEntityMetadata(tracker.getId() + EntityTrackerEntry.TITLE_INT, Arrays.asList(DataWatcher.of(0, (byte) 32, DataWatcherRegistry.a), DataWatcher.of(2, Optional.of(CraftChatMessage.fromStringOrNull(tracker.getTitle())), DataWatcherRegistry.f), DataWatcher.of(3, true, DataWatcherRegistry.i), DataWatcher.of(5, true, DataWatcherRegistry.i))));
++            consumer.accept(new PacketPlayOutSpawnEntityLiving(tracker.getId() + Entity.TITLE_INT, UUID.randomUUID(), 1, tracker.locX(), tracker.locY() + tracker.titleHeight, tracker.locZ(), (int) (d1 * 8000.0D), (int) (d2 * 8000.0D), (int) (d3 * 8000.0D), (byte) 0, (byte) 0, (byte) 0));
++            consumer.accept(new EntityMetadata().setCustomName(tracker.getTitle()).setCustomNameVisible(true).setInvisible(true).setGravity(false).getPacket(tracker.getId() + Entity.TITLE_INT));
+         }
+         // Nesaak end
+         this.headYaw = MathHelper.d(this.tracker.getHeadRotation() * 256.0F / 360.0F);
+@@ -304,7 +302,7 @@ public class EntityTrackerEntry {
+         if (flag && !(packet instanceof PacketPlayOutSpawnEntityLiving)) {
+             PacketPlayOutEntityVelocity vel = new PacketPlayOutEntityVelocity(this.tracker.getId(), this.m);
+             consumer.accept(vel);
+-            if (tracker.getTitle() != null) consumer.accept(vel.clone().setId(vel.getId() + EntityTrackerEntry.TITLE_INT));
++            if (tracker.getTitle() != null) consumer.accept(vel.clone().setId(vel.getId() + Entity.TITLE_INT));
+         }
+         if (this.tracker instanceof EntityLiving) {
+             EnumItemSlot[] aenumitemslot = EnumItemSlot.values();
